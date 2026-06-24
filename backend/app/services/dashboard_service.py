@@ -25,6 +25,9 @@ class DashboardService(BaseService):
         recent_recs = await self.get_recent_recommendations(farm_id, limit=5)
         alert_summary = await self.get_active_alert_summary(farm_id)
         zone_summary = await self.get_zone_overview(farm_id)
+        
+        # Fetch latest hydrophone metrics
+        acoustic_metrics = await self.dashboard_repo.get_latest_hydrophone_metrics(farm_id)
 
         return {
             "farm_id": farm_id,
@@ -33,6 +36,8 @@ class DashboardService(BaseService):
             "alert_summary": alert_summary,
             "zone_overview": zone_summary,
             "recent_recommendations": recent_recs,
+            "acoustic_db": acoustic_metrics.get("acoustic_db"),
+            "bio_acoustic_sync": acoustic_metrics.get("bio_acoustic_sync"),
         }
 
     async def get_global_health_score(self, farm_id: UUID) -> float:

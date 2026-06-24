@@ -36,31 +36,42 @@ export default function FarmCommandCenterPage() {
         {/* Main content */}
         <div className="min-w-0 flex-1 space-y-6">
           {/* Top summary row */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <HealthScoreCard
-              score={score}
-              trendPercent={trendPercent}
-              operationalMeta={farmHealthOperational}
-              variant="hero"
-            />
-            <SummaryStatCard
-              label="Mortality Risk"
-              value={`${mortalityRisk.value}${mortalityRisk.unit}`}
-              subValue={
-                <p className="text-xs font-semibold text-primary">
-                  {mortalityRisk.classification}
-                </p>
-              }
-            />
-            <SummaryStatCard
-              label="Risk Trend"
-              value={riskTrend.label}
-              valueClassName="text-error"
-              trend="down"
-              subValue={
-                <p className="text-xs text-on-surface-variant">{riskTrend.description}</p>
-              }
-            />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <HealthScoreCard
+                score={score}
+                trendPercent={trendPercent}
+                operationalMeta={farmHealthOperational}
+                variant="hero"
+              />
+            </div>
+            <div className="flex flex-col gap-4">
+              <SummaryStatCard
+                label="PSI Average"
+                value="2.4"
+                subValue={
+                  <div className="flex items-center gap-1.5 text-xs text-on-surface-variant mt-1">
+                    <span className="font-semibold tracking-wider uppercase text-[10px]">Risk Trend:</span>
+                    <span className="flex items-center gap-0.5 font-bold text-error text-[11px]">
+                      Downwards
+                      <svg className="h-3.5 w-3.5 text-error" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5 12 21m0 0-7.5-7.5M12 21V3" />
+                      </svg>
+                    </span>
+                  </div>
+                }
+              />
+              <SummaryStatCard
+                label="Hydrophone Acoustic Activity"
+                value="-42 dB"
+                subValue={
+                  <div className="flex items-center justify-between text-xs text-on-surface-variant mt-1">
+                    <span className="font-semibold tracking-wider uppercase text-[10px]">Bio-Acoustic Sync</span>
+                    <span className="font-bold text-on-surface text-[11px]">98%</span>
+                  </div>
+                }
+              />
+            </div>
           </div>
 
           {/* Environmental metrics */}

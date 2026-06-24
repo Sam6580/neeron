@@ -64,6 +64,10 @@ class TankEnvironmentSnapshot(Base):
             "turbidity >= 0",
             name="ck_env_snapshot_turbidity_non_negative",
         ),
+        CheckConstraint(
+            "bio_acoustic_sync BETWEEN 0.00 AND 100.00",
+            name="ck_env_snapshot_bio_acoustic_sync_range",
+        ),
         {
             "comment": (
                 "TimescaleDB hypertable — pivoted per-tank environmental snapshots. "
@@ -121,6 +125,16 @@ class TankEnvironmentSnapshot(Base):
         Numeric(6, 2),
         nullable=True,
         comment="Water turbidity in NTU (≥ 0).",
+    )
+    acoustic_db: Mapped[Optional[float]] = mapped_column(
+        Numeric(6, 2),
+        nullable=True,
+        comment="Current hydrophone acoustic level in decibels",
+    )
+    bio_acoustic_sync: Mapped[Optional[float]] = mapped_column(
+        Numeric(5, 2),
+        nullable=True,
+        comment="Confidence score representing correlation between acoustic activity and expected biological behavior",
     )
 
     def __repr__(self) -> str:

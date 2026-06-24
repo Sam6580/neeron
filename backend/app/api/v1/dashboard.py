@@ -87,6 +87,8 @@ async def get_dashboard_overview(
             waterQualitySummary=water_summary,
             zoneOverview=zone_overview,
             recentInsights=recent_insights,
+            acoustic_db=data.get("acoustic_db"),
+            bio_acoustic_sync=data.get("bio_acoustic_sync"),
         )
     )
 

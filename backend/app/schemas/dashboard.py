@@ -45,6 +45,8 @@ class DashboardOverviewResponse(BaseModel):
     waterQualitySummary: WaterQualitySummary
     zoneOverview: List[DashboardZoneOverview]
     recentInsights: List[DashboardRecentInsight]
+    acoustic_db: Optional[float] = None
+    bio_acoustic_sync: Optional[float] = None
 
 
 class DashboardHealthResponse(BaseModel):

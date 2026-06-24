@@ -38,7 +38,7 @@ class Sensor(Base, UUIDMixin, TimestampMixin):
     __table_args__ = (
         CheckConstraint(
             "type IN ('temperature','pH','dissolved_oxygen','ammonia',"
-            "'salinity','feeder','aerator')",
+            "'salinity','feeder','aerator','hydrophone')",
             name="ck_sensor_type_valid",
         ),
         CheckConstraint(

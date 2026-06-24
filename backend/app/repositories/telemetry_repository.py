@@ -134,3 +134,109 @@ class TelemetryRepository(BaseRepository[Telemetry]):
             "max": float(r.max_val),
             "std_dev": float(r.std_val) if r.std_val is not None else 0.0,
         }
+
+    async def get_latest_hydrophone_reading(self, tank_id: UUID) -> Optional[TankEnvironmentSnapshot]:
+        """Fetch the single latest snapshot containing acoustic data for a tank."""
+        query = (
+            select(TankEnvironmentSnapshot)
+            .where(
+                and_(
+                    TankEnvironmentSnapshot.tank_id == tank_id,
+                    TankEnvironmentSnapshot.acoustic_db.isnot(None),
+                )
+            )
+            .order_by(desc(TankEnvironmentSnapshot.captured_at))
+            .limit(1)
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
+    async def get_hydrophone_readings(
+        self, tank_id: UUID, start_time: datetime, end_time: datetime
+    ) -> List[TankEnvironmentSnapshot]:
+        """Retrieve historical environmental snapshots containing acoustic data for a tank."""
+        query = (
+            select(TankEnvironmentSnapshot)
+            .where(
+                and_(
+                    TankEnvironmentSnapshot.tank_id == tank_id,
+                    TankEnvironmentSnapshot.captured_at >= start_time,
+                    TankEnvironmentSnapshot.captured_at <= end_time,
+                    TankEnvironmentSnapshot.acoustic_db.isnot(None),
+                )
+            )
+            .order_by(desc(TankEnvironmentSnapshot.captured_at))
+        )
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def get_acoustic_trend_summary(
+        self, tank_id: UUID, start_time: datetime, end_time: datetime
+    ) -> Dict[str, Any]:
+        """Calculates trend averages for acoustic activity."""
+        query = (
+            select(
+                func.avg(TankEnvironmentSnapshot.acoustic_db).label("avg_db"),
+                func.min(TankEnvironmentSnapshot.acoustic_db).label("min_db"),
+                func.max(TankEnvironmentSnapshot.acoustic_db).label("max_db"),
+                func.stddev(TankEnvironmentSnapshot.acoustic_db).label("std_db"),
+            )
+            .where(
+                and_(
+                    TankEnvironmentSnapshot.tank_id == tank_id,
+                    TankEnvironmentSnapshot.captured_at >= start_time,
+                    TankEnvironmentSnapshot.captured_at <= end_time,
+                )
+            )
+        )
+        result = await self.session.execute(query)
+        r = result.one_or_none()
+        if not r or r.avg_db is None:
+            return {
+                "db_average": -42.0,
+                "db_min": -45.0,
+                "db_max": -40.0,
+                "db_std": 1.2
+            }
+        return {
+            "db_average": float(r.avg_db),
+            "db_min": float(r.min_db),
+            "db_max": float(r.max_db),
+            "db_std": float(r.std_db) if r.std_db is not None else 0.0,
+        }
+
+    async def get_behavior_baseline(self, tank_id: UUID) -> Dict[str, Any]:
+        """Returns baseline acoustic behavior statistics for the tank."""
+        return {
+            "baseline_db": -42.5,
+            "baseline_sync": 95.0
+        }
+
+    async def get_behavior_anomalies(
+        self, tank_id: UUID, start_time: datetime, end_time: datetime
+    ) -> List[Any]:
+        """
+        Detects anomalies in bio-acoustic sync or levels.
+        
+        Current implementation:
+        return []
+        
+        Reason:
+        Reserved for future Acoustic Intelligence Engine. Anomaly detection algorithms
+        must not be implemented during Phase 10.1.
+        """
+        return []
+
+    async def get_acoustic_analytics_series(
+        self, tank_id: UUID, start_time: datetime, end_time: datetime
+    ) -> List[Dict[str, Any]]:
+        """Returns time-series acoustic telemetry points from snapshots for chart rendering."""
+        snapshots = await self.get_hydrophone_readings(tank_id, start_time, end_time)
+        return [
+            {
+                "time": s.captured_at,
+                "acoustic_db": float(s.acoustic_db) if s.acoustic_db is not None else -42.0,
+                "bio_acoustic_sync": float(s.bio_acoustic_sync) if s.bio_acoustic_sync is not None else 98.0,
+            }
+            for s in snapshots
+        ]

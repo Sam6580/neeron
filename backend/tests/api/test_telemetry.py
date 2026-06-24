@@ -64,3 +64,58 @@ async def test_get_telemetry_history(client, mock_services):
     assert len(json_data["data"]["history"]) == 1
     assert json_data["data"]["history"][0]["value"] == 15.1
     assert json_data["data"]["history"][0]["sensor_id"] == str(sensor_id)
+
+
+async def test_get_acoustic_activity(client, mock_services):
+    tank_id = uuid4()
+    mock_services["telemetry"].get_acoustic_activity.return_value = {
+        "current_db": -42.0,
+        "bio_acoustic_sync": 98.0,
+        "status": "Normal",
+    }
+
+    response = await client.get(f"/api/v1/telemetry/acoustic?tank_id={tank_id}")
+    assert response.status_code == 200
+    json_data = response.json()
+    assert json_data["success"] is True
+    data = json_data["data"]
+    assert data["tankId"] == str(tank_id)
+    assert data["current_db"] == -42.0
+    assert data["bio_acoustic_sync"] == 98.0
+    assert data["status"] == "Normal"
+
+
+async def test_get_acoustic_history(client, mock_services):
+    tank_id = uuid4()
+    start = "2026-06-24T00:00:00Z"
+    end = "2026-06-24T23:59:59Z"
+
+    mock_services["telemetry"].get_acoustic_analytics_data.return_value = {
+        "series": [
+            {
+                "time": datetime.now(timezone.utc),
+                "acoustic_db": -41.5,
+                "bio_acoustic_sync": 97.2,
+            }
+        ],
+        "summary": {
+            "average_db": -42.0,
+            "min_db": -45.0,
+            "max_db": -40.0,
+            "stability_score": 94.0,
+        },
+    }
+
+    response = await client.get(
+        f"/api/v1/telemetry/acoustic/history?tank_id={tank_id}&start_time={start}&end_time={end}"
+    )
+    assert response.status_code == 200
+    json_data = response.json()
+    assert json_data["success"] is True
+    data = json_data["data"]
+    assert data["tankId"] == str(tank_id)
+    assert len(data["series"]) == 1
+    assert data["series"][0]["acoustic_db"] == -41.5
+    assert data["series"][0]["bio_acoustic_sync"] == 97.2
+    assert data["summary"]["average_db"] == -42.0
+    assert data["summary"]["stability_score"] == 94.0

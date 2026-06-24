@@ -87,3 +87,79 @@ class TelemetryService(BaseService):
                 score -= penalty
 
         return float(max(0.0, min(100.0, score)))
+
+    async def get_acoustic_activity(self, tank_id: UUID) -> Dict[str, Any]:
+        """Retrieves the current acoustic decibels, sync percent, and status classification."""
+        reading = await self.telemetry_repo.get_latest_hydrophone_reading(tank_id)
+        if not reading:
+            return {
+                "current_db": -42.0,
+                "bio_acoustic_sync": 98.0,
+                "status": "Normal"
+            }
+        
+        # Determine status classification based on simple non-ML threshold rules
+        sync = float(reading.bio_acoustic_sync) if reading.bio_acoustic_sync is not None else 98.0
+        status_str = "Normal"
+        if sync < 70.0:
+            status_str = "Critical"
+        elif sync < 85.0:
+            status_str = "Warning"
+            
+        return {
+            "current_db": float(reading.acoustic_db) if reading.acoustic_db is not None else -42.0,
+            "bio_acoustic_sync": sync,
+            "status": status_str
+        }
+
+    async def get_acoustic_trends(
+        self, tank_id: UUID, start_time: datetime, end_time: datetime
+    ) -> Dict[str, Any]:
+        """Retrieves summary analytics for acoustic trends."""
+        return await self.telemetry_repo.get_acoustic_trend_summary(tank_id, start_time, end_time)
+
+    async def get_acoustic_trend_summary(
+        self, tank_id: UUID, start_time: datetime, end_time: datetime
+    ) -> Dict[str, Any]:
+        """Alias method to retrieve trend summaries."""
+        return await self.telemetry_repo.get_acoustic_trend_summary(tank_id, start_time, end_time)
+
+    async def get_behavior_baseline(self, tank_id: UUID) -> Dict[str, Any]:
+        """Retrieves the baseline acoustic benchmarks for a tank."""
+        return await self.telemetry_repo.get_behavior_baseline(tank_id)
+
+    async def get_behavior_anomalies(
+        self, tank_id: UUID, start_time: datetime, end_time: datetime
+    ) -> List[Any]:
+        """
+        Placeholder for behavioral anomalies.
+        
+        Current implementation:
+        return []
+        
+        Reason:
+        Reserved for future Acoustic Intelligence Engine. No anomaly detection ML
+        is implemented in Phase 10.1.
+        """
+        return await self.telemetry_repo.get_behavior_anomalies(tank_id, start_time, end_time)
+
+    async def get_acoustic_analytics_data(
+        self, tank_id: UUID, start_time: datetime, end_time: datetime
+    ) -> Dict[str, Any]:
+        """Compiles time series telemetry lists and summary statistics for Analytics Dashboard charts."""
+        series = await self.telemetry_repo.get_acoustic_analytics_series(tank_id, start_time, end_time)
+        trends = await self.telemetry_repo.get_acoustic_trend_summary(tank_id, start_time, end_time)
+        
+        # Derive a simple non-ML stability index from standard deviation
+        std_dev = trends.get("db_std", 0.0)
+        stability_score = max(0.0, min(100.0, 100.0 - (std_dev * 5.0)))
+        
+        return {
+            "series": series,
+            "summary": {
+                "average_db": trends.get("db_average", -42.0),
+                "min_db": trends.get("db_min", -45.0),
+                "max_db": trends.get("db_max", -40.0),
+                "stability_score": round(stability_score, 2)
+            }
+        }

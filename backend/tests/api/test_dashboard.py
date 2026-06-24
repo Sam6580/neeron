@@ -39,6 +39,8 @@ async def test_get_dashboard_overview(client, mock_services):
                 time=datetime.now(timezone.utc),
             )
         ],
+        "acoustic_db": -42.0,
+        "bio_acoustic_sync": 98.0,
     }
 
     mock_services["dashboard"].dashboard_repo.get_farm_health_snapshot.return_value = MockORM(
@@ -59,6 +61,9 @@ async def test_get_dashboard_overview(client, mock_services):
     assert data["zoneOverview"][0]["name"] == "Zone A"
     assert len(data["recentInsights"]) == 1
     assert data["recentInsights"][0]["title"] == "Increase DO aeration"
+    # Phase 10.1: hydrophone fields must be present and correct
+    assert data["acoustic_db"] == -42.0
+    assert data["bio_acoustic_sync"] == 98.0
 
 
 async def test_get_dashboard_health(client, mock_services):

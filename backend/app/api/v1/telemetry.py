@@ -14,6 +14,10 @@ from app.schemas.telemetry import (
     TelemetryMetrics,
     TelemetryHistoryResponse,
     TelemetryHistoryPoint,
+    AcousticActivityResponse,
+    AcousticHistoryResponse,
+    AcousticSeriesPoint,
+    AcousticSummary,
 )
 
 router = APIRouter()
@@ -90,5 +94,65 @@ async def get_telemetry_history(
         data=TelemetryHistoryResponse(
             tankId=tank_id,
             history=history_points,
+        )
+    )
+
+
+@router.get("/acoustic", response_model=BaseResponse[AcousticActivityResponse])
+async def get_acoustic_activity(
+    tank_id: UUID,
+    service: TelemetryService = Depends(get_telemetry_service),
+):
+    """
+    Retrieves the current hydrophone acoustic activity metrics for a specific tank.
+
+    Returns live acoustic decibel reading and Bio-Acoustic Sync confidence score.
+    Anomaly detection is Not Yet Implemented (reserved for Acoustic Intelligence phase).
+    """
+    data = await service.get_acoustic_activity(tank_id)
+    return BaseResponse(
+        data=AcousticActivityResponse(
+            tankId=tank_id,
+            current_db=data["current_db"],
+            bio_acoustic_sync=data["bio_acoustic_sync"],
+            status=data["status"],
+        )
+    )
+
+
+@router.get("/acoustic/history", response_model=BaseResponse[AcousticHistoryResponse])
+async def get_acoustic_history(
+    tank_id: UUID,
+    start_time: datetime,
+    end_time: datetime,
+    service: TelemetryService = Depends(get_telemetry_service),
+):
+    """
+    Returns time-series acoustic telemetry history for Analytics Dashboard chart rendering.
+
+    Provides per-point acoustic_db and bio_acoustic_sync values along with
+    aggregated summary statistics (average, min, max, stability score).
+    No ML inference is performed — aggregation only.
+    """
+    data = await service.get_acoustic_analytics_data(tank_id, start_time, end_time)
+    series = [
+        AcousticSeriesPoint(
+            time=pt["time"],
+            acoustic_db=pt["acoustic_db"],
+            bio_acoustic_sync=pt["bio_acoustic_sync"],
+        )
+        for pt in data["series"]
+    ]
+    summary_raw = data["summary"]
+    return BaseResponse(
+        data=AcousticHistoryResponse(
+            tankId=tank_id,
+            series=series,
+            summary=AcousticSummary(
+                average_db=summary_raw["average_db"],
+                min_db=summary_raw["min_db"],
+                max_db=summary_raw["max_db"],
+                stability_score=summary_raw["stability_score"],
+            ),
         )
     )

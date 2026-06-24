@@ -162,3 +162,38 @@ class AiInsightService(BaseService):
             f"with a confidence score of {conf_pct:.1f}%. The model projects the expected outcome as: "
             f"'{rec.expected_outcome}'."
         )
+
+    async def build_acoustic_insight(
+        self,
+        tank_id: UUID,
+        current_db: float,
+        bio_acoustic_sync: float,
+    ) -> str:
+        """
+        Generates a plain-language narrative for the hydrophone acoustic activity card.
+
+        Current implementation:
+        Returns a static descriptive narrative using provided metric values.
+
+        Reason:
+        Acoustic ML classification (anomaly detection, behavioral embeddings, FFT)
+        is reserved for a dedicated Acoustic Intelligence phase.
+        This method is a Phase 10.1 infrastructure placeholder.
+
+        Not Yet Implemented:
+        - Anomaly scoring
+        - Behavior classification
+        - Historical trend comparison
+        """
+        sync_label = "Optimal"
+        if bio_acoustic_sync < 70.0:
+            sync_label = "Critical"
+        elif bio_acoustic_sync < 85.0:
+            sync_label = "Warning"
+
+        return (
+            f"Hydrophone acoustic telemetry reads {current_db:.1f} dB with a Bio-Acoustic Sync "
+            f"confidence of {bio_acoustic_sync:.1f}% (status: {sync_label}). "
+            f"Acoustic anomaly detection and behavioral classification are Not Yet Implemented "
+            f"and are reserved for the Acoustic Intelligence phase."
+        )
