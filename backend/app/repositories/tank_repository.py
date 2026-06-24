@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, select, and_, desc
@@ -76,6 +76,17 @@ class TankRepository(BaseRepository[Tank]):
             })
 
         return dashboard_data
+
+    async def get_latest_environment_snapshot(self, tank_id: UUID) -> Optional[TankEnvironmentSnapshot]:
+        """Fetch the latest TankEnvironmentSnapshot for a single tank."""
+        query = (
+            select(TankEnvironmentSnapshot)
+            .where(TankEnvironmentSnapshot.tank_id == tank_id)
+            .order_by(desc(TankEnvironmentSnapshot.captured_at))
+            .limit(1)
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
 
     async def get_tank_health(self, tank_id: UUID) -> Dict[str, Any]:
         """

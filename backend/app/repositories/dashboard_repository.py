@@ -51,6 +51,28 @@ class DashboardRepository(BaseRepository[FarmHealthSnapshot]):
         result = await self.session.execute(query)
         return result.scalar() or 0
 
+    async def get_active_alert_severity_summary(self, farm_id: UUID) -> Dict[str, int]:
+        """Get count of active alerts by severity for a farm."""
+        query = (
+            select(Alert.severity, func.count(Alert.id))
+            .join(Tank, Alert.tank_id == Tank.id)
+            .join(Zone, Tank.zone_id == Zone.id)
+            .where(
+                and_(
+                    Zone.farm_id == farm_id,
+                    Alert.status == "Active"
+                )
+            )
+            .group_by(Alert.severity)
+        )
+        result = await self.session.execute(query)
+        rows = result.all()
+        summary = {"Info": 0, "Warning": 0, "Critical": 0}
+        for severity, count in rows:
+            if severity in summary:
+                summary[severity] = count
+        return summary
+
     async def get_risk_trend(self, farm_id: UUID, days: int = 7) -> List[Dict[str, Any]]:
         """Retrieve the historical timeline of farm risk scores."""
         start_time = datetime.now(timezone.utc) - timedelta(days=days)

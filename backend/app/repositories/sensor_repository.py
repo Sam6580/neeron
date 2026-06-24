@@ -30,3 +30,16 @@ class SensorRepository(BaseRepository[Sensor]):
         )
         result = await self.session.execute(query)
         return list(result.scalars().all())
+
+    async def get_sensors_by_farm(self, farm_id: UUID) -> List[Sensor]:
+        """Retrieve all sensors associated with any tank in a farm."""
+        from app.models.tank import Tank
+        from app.models.zone import Zone
+        query = (
+            select(self.model)
+            .join(Tank, self.model.tank_id == Tank.id)
+            .join(Zone, Tank.zone_id == Zone.id)
+            .where(Zone.farm_id == farm_id)
+        )
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
