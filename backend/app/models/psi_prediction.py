@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID, uuid4
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
@@ -16,8 +16,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
+if TYPE_CHECKING:
+    from app.models.psi_factor import PsiFactor
+
 
 class PsiPrediction(Base):
+
     """
     Physiological Stress Index (PSI) prediction for a tank.
 

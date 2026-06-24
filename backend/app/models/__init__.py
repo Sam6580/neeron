@@ -45,6 +45,11 @@ from app.models.data_quality_check import DataQualityCheck
 from app.models.digital_twin_snapshot import DigitalTwinSnapshot
 from app.models.threshold_config import ThresholdConfig
 
+# Batch 7
+from app.models.farm_health_snapshot import FarmHealthSnapshot
+from app.models.system_health_snapshot import SystemHealthSnapshot
+from app.models.recommendation_action import RecommendationAction
+
 __all__ = [
     # Batch 1
     "Role",
@@ -91,4 +96,9 @@ __all__ = [
     "DataQualityCheck",
     "DigitalTwinSnapshot",
     "ThresholdConfig",
+    # Batch 7
+    "FarmHealthSnapshot",
+    "SystemHealthSnapshot",
+    "RecommendationAction",
 ]
+
