@@ -40,16 +40,17 @@ async def test_get_user_profile_not_found(client, mock_services):
 
 async def test_get_user_audit_logs(client, mock_services):
     user_id = uuid4()
-    log_id = uuid4()
     mock_services["user"].get_user_audit_logs.return_value = [
         MockORM(
-            id=log_id,
             time=datetime.now(timezone.utc),
-            action="UPDATE_THRESHOLDS",
+            event_type="UPDATE_THRESHOLDS",
+            action="User updated dissolved_oxygen threshold",
             user_id=user_id,
             ip_address="192.168.1.50",
-            user_agent="Mozilla/5.0",
-            details={"metric": "dissolved_oxygen", "warning_min": 6.5},
+            target_entity="ThresholdConfig",
+            target_id=None,
+            old_value={"warning_min": 6.0},
+            new_value={"warning_min": 6.5},
         )
     ]
 
@@ -58,5 +59,6 @@ async def test_get_user_audit_logs(client, mock_services):
     json_data = response.json()
     assert json_data["success"] is True
     assert len(json_data["data"]) == 1
-    assert json_data["data"][0]["action"] == "UPDATE_THRESHOLDS"
-    assert json_data["data"][0]["details"]["metric"] == "dissolved_oxygen"
+    assert json_data["data"][0]["event_type"] == "UPDATE_THRESHOLDS"
+    assert json_data["data"][0]["action"] == "User updated dissolved_oxygen threshold"
+    assert json_data["data"][0]["new_value"]["warning_min"] == 6.5

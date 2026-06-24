@@ -24,6 +24,7 @@ from app.api.v1.deps import (
     get_ai_insight_service,
     get_user_service,
     get_alert_service,
+    get_auth_service,
     get_db,
 )
 
@@ -66,6 +67,7 @@ def mock_services():
         "ai_insight": AsyncMock(),
         "user": AsyncMock(),
         "alert": AsyncMock(),
+        "auth": AsyncMock(),
         "db": AsyncMock(),
     }
 
@@ -90,6 +92,7 @@ def mock_services():
     app.dependency_overrides[get_ai_insight_service] = lambda: mocks["ai_insight"]
     app.dependency_overrides[get_user_service] = lambda: mocks["user"]
     app.dependency_overrides[get_alert_service] = lambda: mocks["alert"]
+    app.dependency_overrides[get_auth_service] = lambda: mocks["auth"]
     app.dependency_overrides[get_db] = lambda: mocks["db"]
 
     yield mocks

@@ -6,13 +6,12 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-# Retrieve configuration from environment variables
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://neeron_user:pwd@localhost:5432/neeron"
-)
-POOL_SIZE = int(os.getenv("DATABASE_POOL_SIZE", "20"))
-MAX_OVERFLOW = int(os.getenv("DATABASE_MAX_OVERFLOW", "10"))
+from app.core.config import settings
+
+# Retrieve configuration from central settings
+DATABASE_URL = settings.DATABASE_URL
+POOL_SIZE = settings.DATABASE_POOL_SIZE
+MAX_OVERFLOW = settings.DATABASE_MAX_OVERFLOW
 
 # Create async engine with production-grade connection pooling
 engine = create_async_engine(

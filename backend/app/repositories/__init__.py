@@ -13,6 +13,7 @@ from app.repositories.biosecurity_repository import BiosecurityRepository
 from app.repositories.prediction_repository import PredictionRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.dashboard_repository import DashboardRepository
+from app.repositories.audit_log_repository import AuditLogRepository
 
 __all__ = [
     "BaseRepository",
@@ -27,4 +28,5 @@ __all__ = [
     "PredictionRepository",
     "UserRepository",
     "DashboardRepository",
+    "AuditLogRepository",
 ]

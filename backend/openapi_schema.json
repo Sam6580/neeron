@@ -28,6 +28,144 @@
         }
       }
     },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Login",
+        "description": "Authenticate user and generate access/refresh tokens.",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse_LoginResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Refresh",
+        "description": "Refresh access and refresh tokens via rotation.",
+        "operationId": "refresh_api_v1_auth_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse_RefreshTokenResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Logout",
+        "description": "Logout the current authenticated user and clear their session.",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse_LogoutResponse_"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get Me",
+        "description": "Retrieve details of the currently authenticated user.",
+        "operationId": "get_me_api_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse_UserProfileResponse_"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/dashboard/overview": {
       "get": {
         "tags": [
@@ -720,6 +858,114 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/BaseResponse_TelemetryHistoryResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/telemetry/acoustic": {
+      "get": {
+        "tags": [
+          "Telemetry"
+        ],
+        "summary": "Get Acoustic Activity",
+        "description": "Retrieves the current hydrophone acoustic activity metrics for a specific tank.\n\nReturns live acoustic decibel reading and Bio-Acoustic Sync confidence score.\nAnomaly detection is Not Yet Implemented (reserved for Acoustic Intelligence phase).",
+        "operationId": "get_acoustic_activity_api_v1_telemetry_acoustic_get",
+        "parameters": [
+          {
+            "name": "tank_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tank Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse_AcousticActivityResponse_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/telemetry/acoustic/history": {
+      "get": {
+        "tags": [
+          "Telemetry"
+        ],
+        "summary": "Get Acoustic History",
+        "description": "Returns time-series acoustic telemetry history for Analytics Dashboard chart rendering.\n\nProvides per-point acoustic_db and bio_acoustic_sync values along with\naggregated summary statistics (average, min, max, stability score).\nNo ML inference is performed \u2014 aggregation only.",
+        "operationId": "get_acoustic_history_api_v1_telemetry_acoustic_history_get",
+        "parameters": [
+          {
+            "name": "tank_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tank Id"
+            }
+          },
+          {
+            "name": "start_time",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Start Time"
+            }
+          },
+          {
+            "name": "end_time",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "title": "End Time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BaseResponse_AcousticHistoryResponse_"
                 }
               }
             }
@@ -1712,6 +1958,117 @@
   },
   "components": {
     "schemas": {
+      "AcousticActivityResponse": {
+        "properties": {
+          "tankId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tankid"
+          },
+          "current_db": {
+            "type": "number",
+            "title": "Current Db"
+          },
+          "bio_acoustic_sync": {
+            "type": "number",
+            "title": "Bio Acoustic Sync"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tankId",
+          "current_db",
+          "bio_acoustic_sync",
+          "status"
+        ],
+        "title": "AcousticActivityResponse",
+        "description": "Real-time acoustic status for a single tank."
+      },
+      "AcousticHistoryResponse": {
+        "properties": {
+          "tankId": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tankid"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/AcousticSeriesPoint"
+            },
+            "type": "array",
+            "title": "Series"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/AcousticSummary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tankId",
+          "series",
+          "summary"
+        ],
+        "title": "AcousticHistoryResponse",
+        "description": "Analytics-ready acoustic history payload."
+      },
+      "AcousticSeriesPoint": {
+        "properties": {
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Time"
+          },
+          "acoustic_db": {
+            "type": "number",
+            "title": "Acoustic Db"
+          },
+          "bio_acoustic_sync": {
+            "type": "number",
+            "title": "Bio Acoustic Sync"
+          }
+        },
+        "type": "object",
+        "required": [
+          "time",
+          "acoustic_db",
+          "bio_acoustic_sync"
+        ],
+        "title": "AcousticSeriesPoint",
+        "description": "A single point in the acoustic time-series chart."
+      },
+      "AcousticSummary": {
+        "properties": {
+          "average_db": {
+            "type": "number",
+            "title": "Average Db"
+          },
+          "min_db": {
+            "type": "number",
+            "title": "Min Db"
+          },
+          "max_db": {
+            "type": "number",
+            "title": "Max Db"
+          },
+          "stability_score": {
+            "type": "number",
+            "title": "Stability Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "average_db",
+          "min_db",
+          "max_db",
+          "stability_score"
+        ],
+        "title": "AcousticSummary",
+        "description": "Aggregated acoustic statistics over a time range."
+      },
       "AiInsightResponse": {
         "properties": {
           "id": {
@@ -1990,6 +2347,50 @@
           "details"
         ],
         "title": "AuditLogResponse"
+      },
+      "BaseResponse_AcousticActivityResponse_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "default": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AcousticActivityResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "BaseResponse[AcousticActivityResponse]"
+      },
+      "BaseResponse_AcousticHistoryResponse_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "default": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AcousticHistoryResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "BaseResponse[AcousticHistoryResponse]"
       },
       "BaseResponse_AiModelResponse_": {
         "properties": {
@@ -2430,6 +2831,50 @@
         ],
         "title": "BaseResponse[List[ThresholdConfigResponse]]"
       },
+      "BaseResponse_LoginResponse_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "default": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LoginResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "BaseResponse[LoginResponse]"
+      },
+      "BaseResponse_LogoutResponse_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "default": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LogoutResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "BaseResponse[LogoutResponse]"
+      },
       "BaseResponse_RecommendationActionResponse_": {
         "properties": {
           "success": {
@@ -2451,6 +2896,28 @@
           "data"
         ],
         "title": "BaseResponse[RecommendationActionResponse]"
+      },
+      "BaseResponse_RefreshTokenResponse_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "default": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RefreshTokenResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "BaseResponse[RefreshTokenResponse]"
       },
       "BaseResponse_TankDetailResponse_": {
         "properties": {
@@ -2613,6 +3080,28 @@
         ],
         "title": "BaseResponse[Union[TankEnvironmentSnapshotResponse, NoneType]]"
       },
+      "BaseResponse_UserProfileResponse_": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "default": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserProfileResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "BaseResponse[UserProfileResponse]"
+      },
       "BaseResponse_UserResponse_": {
         "properties": {
           "success": {
@@ -2697,6 +3186,28 @@
             },
             "type": "array",
             "title": "Recentinsights"
+          },
+          "acoustic_db": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acoustic Db"
+          },
+          "bio_acoustic_sync": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio Acoustic Sync"
           }
         },
         "type": "object",
@@ -2907,6 +3418,72 @@
           "timestamp"
         ],
         "title": "HealthResponse"
+      },
+      "LoginRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "User email address"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "description": "User password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "LoginRequest"
+      },
+      "LoginResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token",
+            "description": "JWT access token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token",
+            "description": "JWT refresh token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "description": "Token type",
+            "default": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token"
+        ],
+        "title": "LoginResponse"
+      },
+      "LogoutResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether logout succeeded"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Logout confirmation message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "message"
+        ],
+        "title": "LogoutResponse"
       },
       "ModelHealthMetricResponse": {
         "properties": {
@@ -3149,6 +3726,46 @@
           "generatedAt"
         ],
         "title": "RecommendationResponse"
+      },
+      "RefreshTokenRequest": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token",
+            "description": "JWT refresh token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "title": "RefreshTokenRequest"
+      },
+      "RefreshTokenResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token",
+            "description": "JWT access token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token",
+            "description": "JWT refresh token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "description": "Token type",
+            "default": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "refresh_token"
+        ],
+        "title": "RefreshTokenResponse"
       },
       "RiskTrendPoint": {
         "properties": {
@@ -3792,6 +4409,48 @@
         ],
         "title": "ThresholdUpdatePayload"
       },
+      "UserProfileResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          },
+          "last_name": {
+            "type": "string",
+            "title": "Last Name"
+          },
+          "role_name": {
+            "type": "string",
+            "title": "Role Name"
+          },
+          "permissions": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Permissions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "first_name",
+          "last_name",
+          "role_name",
+          "permissions"
+        ],
+        "title": "UserProfileResponse"
+      },
       "UserResponse": {
         "properties": {
           "id": {
@@ -3902,6 +4561,17 @@
           "avgAmmonia"
         ],
         "title": "WaterQualitySummary"
+      }
+    },
+    "securitySchemes": {
+      "OAuth2PasswordBearer": {
+        "type": "oauth2",
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "/api/v1/auth/login"
+          }
+        }
       }
     }
   }
