@@ -1,65 +1,163 @@
-import Image from "next/image";
+import { AppShell } from "@/components/layout";
+import { HealthScoreCard, MetricCard, SummaryStatCard, AlertCard } from "@/components/cards";
+import { ZoneOverviewCard } from "@/components/tanks";
+import { DashboardRecommendations, HistoricalCaseMatch } from "@/components/dashboard";
+import {
+  farmHealthOperational,
+  getActiveAlerts,
+  getEnvironmentalMetrics,
+  getFarmHealthScore,
+  getZoneOverviews,
+  mortalityRisk,
+  recommendations,
+  riskTrend,
+} from "@/data";
+import { getZoneById } from "@/data/zones";
 
-export default function Home() {
+export default function FarmCommandCenterPage() {
+  const { score, trendPercent } = getFarmHealthScore();
+  const environmentalMetrics = getEnvironmentalMetrics();
+  const zoneOverviews = getZoneOverviews();
+  const activeAlerts = getActiveAlerts();
+  const pendingRecommendations = recommendations.filter(
+    (rec) => rec.status === "pending",
+  );
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <AppShell title="Farm Command Center" alertCount={activeAlerts.length}>
+      <div className="mb-2 hidden lg:block">
+        <h1 className="text-lg font-semibold text-on-surface">Farm Command Center</h1>
+        <p className="text-sm text-on-surface-variant">
+          Real-time Atlantic Salmon operations across all active sites
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-6 xl:flex-row">
+        {/* Main content */}
+        <div className="min-w-0 flex-1 space-y-6">
+          {/* Top summary row */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <HealthScoreCard
+              score={score}
+              trendPercent={trendPercent}
+              operationalMeta={farmHealthOperational}
+              variant="hero"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <SummaryStatCard
+              label="Mortality Risk"
+              value={`${mortalityRisk.value}${mortalityRisk.unit}`}
+              subValue={
+                <p className="text-xs font-semibold text-primary">
+                  {mortalityRisk.classification}
+                </p>
+              }
+            />
+            <SummaryStatCard
+              label="Risk Trend"
+              value={riskTrend.label}
+              valueClassName="text-error"
+              trend="down"
+              subValue={
+                <p className="text-xs text-on-surface-variant">{riskTrend.description}</p>
+              }
+            />
+          </div>
+
+          {/* Environmental metrics */}
+          <section>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">
+              {environmentalMetrics.map((metric) => (
+                <MetricCard
+                  key={metric.id}
+                  metric={metric}
+                  sparkline={metric.sparkline}
+                  variant="compact"
+                />
+              ))}
+            </div>
+          </section>
+
+          {/* Active zones */}
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-on-surface">
+                Active Zones
+              </h2>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-on-surface-variant transition-colors hover:border-white/20 hover:text-on-surface"
+                >
+                  Filter
+                </button>
+                <button
+                  type="button"
+                  className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-on-surface-variant transition-colors hover:border-white/20 hover:text-on-surface"
+                >
+                  View All
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {zoneOverviews.map((zone) => (
+                <ZoneOverviewCard key={zone.id} zone={zone} />
+              ))}
+            </div>
+          </section>
         </div>
-      </main>
-    </div>
+
+        {/* Right AI panel */}
+        <aside className="w-full shrink-0 space-y-6 xl:w-80 2xl:w-96">
+          {/* AI Recommendations */}
+          <section>
+            <div className="mb-4 flex items-center gap-2">
+              <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+              </svg>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+                AI Recommendations
+              </h2>
+            </div>
+            <DashboardRecommendations recommendations={pendingRecommendations} />
+          </section>
+
+          {/* Historical case match */}
+          <HistoricalCaseMatch />
+
+          {/* Active alerts */}
+          <section>
+            <div className="mb-4 flex items-center gap-2">
+              <svg className="h-4 w-4 text-warning" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+              </svg>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+                Active Alerts
+              </h2>
+            </div>
+            <div className="space-y-2">
+              {activeAlerts.slice(0, 4).map((alert) => (
+                <AlertCard
+                  key={alert.id}
+                  alert={alert}
+                  zoneCode={getZoneById(alert.zoneId)?.code}
+                  variant="compact"
+                />
+              ))}
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      {/* Floating action button */}
+      <button
+        type="button"
+        aria-label="Add new item"
+        className="btn-primary-gradient fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-[0_0_30px_rgba(0,210,255,0.4)] transition-all hover:scale-105"
+      >
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+      </button>
+    </AppShell>
   );
 }

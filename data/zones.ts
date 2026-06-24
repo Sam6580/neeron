@@ -1,0 +1,68 @@
+import type { Zone } from "@/types";
+
+export const zones: Zone[] = [
+  {
+    id: "zone-loch-duich",
+    name: "Loch Duich Sea Site",
+    code: "LD-01",
+    type: "sea_site",
+    status: "operational",
+    location: "Kyle of Lochalsh, Scotland",
+    region: "Highlands",
+    latitude: 57.2784,
+    longitude: -5.5167,
+    tankCount: 8,
+    totalBiomassKg: 412_500,
+    avgHealthScore: 87,
+    manager: "Fiona MacLeod",
+  },
+  {
+    id: "zone-hardanger",
+    name: "Hardanger Fjord Site",
+    code: "HF-03",
+    type: "sea_site",
+    status: "operational",
+    location: "Hardanger, Norway",
+    region: "Vestland",
+    latitude: 60.3167,
+    longitude: 6.5833,
+    tankCount: 12,
+    totalBiomassKg: 685_200,
+    avgHealthScore: 91,
+    manager: "Erik Johansen",
+  },
+  {
+    id: "zone-ras-bodø",
+    name: "Bodø RAS Smolt Facility",
+    code: "BR-02",
+    type: "land_facility",
+    status: "operational",
+    location: "Bodø, Norway",
+    region: "Nordland",
+    latitude: 67.2804,
+    longitude: 14.4049,
+    tankCount: 16,
+    totalBiomassKg: 48_600,
+    avgHealthScore: 94,
+    manager: "Ingrid Larsen",
+  },
+  {
+    id: "zone-chiloé",
+    name: "Chiloé South Site",
+    code: "CH-07",
+    type: "sea_site",
+    status: "degraded",
+    location: "Castro, Chile",
+    region: "Los Lagos",
+    latitude: -42.4827,
+    longitude: -73.7629,
+    tankCount: 10,
+    totalBiomassKg: 523_800,
+    avgHealthScore: 72,
+    manager: "Carlos Mendez",
+  },
+];
+
+export function getZoneById(id: string): Zone | undefined {
+  return zones.find((zone) => zone.id === id);
+}
