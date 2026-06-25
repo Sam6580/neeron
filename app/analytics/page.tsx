@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useAppData } from "@/lib/hooks/useAppData";
 import Link from "next/link";
 import { AppShell } from "@/components/layout";
 import {
@@ -25,10 +26,6 @@ import {
   getTankBiomassKg,
 } from "@/lib";
 import { cn } from "@/lib/utils";
-import { tanks } from "@/data/tanks";
-import { zones } from "@/data/zones";
-import { analyticsMetrics } from "@/data/analytics";
-import { getActiveAlerts } from "@/data/alerts";
 
 // Interfaces for our Analytics Page
 interface MLModel {
@@ -117,6 +114,7 @@ const generateBiomassForecastData = (days: number) => {
 };
 
 export default function AnalyticsPage() {
+  const { tanks, zones, analytics: analyticsMetrics, getActiveAlerts } = useAppData();
   const activeAlerts = getActiveAlerts();
   const [forecastDays, setForecastDays] = useState<30 | 90 | 180>(90);
 
@@ -418,7 +416,12 @@ export default function AnalyticsPage() {
                   <Tooltip
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
-                        const data: any = payload[0].payload;
+                        const data = payload[0].payload as {
+                          historical: number;
+                          predicted: number;
+                          label: string;
+                          bounds: number[];
+                        };
                         const isForecast = !data.historical;
                         return (
                           <div className="rounded-xl border border-white/10 bg-[#060e20]/95 p-3 text-xs shadow-2xl backdrop-blur-xl">
@@ -672,7 +675,7 @@ export default function AnalyticsPage() {
             <div className="border-t border-white/5 pt-3 mt-2">
               <h4 className="text-[9px] font-bold uppercase tracking-widest text-primary mb-1.5">AI Engine Insight</h4>
               <p className="text-[11px] leading-relaxed text-on-surface-variant bg-[#0b1326]/50 border border-white/5 rounded-xl p-3">
-                "The target window optimizes biomass tonnage against thermal oxygen capacity boundaries. Early harvest in mid-August circumvents seasonal mortality risks associated with ocean warming trends."
+                &quot;The target window optimizes biomass tonnage against thermal oxygen capacity boundaries. Early harvest in mid-August circumvents seasonal mortality risks associated with ocean warming trends.&quot;
               </p>
             </div>
           </div>

@@ -18,13 +18,14 @@ class UserResponse(BaseModel):
 
 
 class AuditLogResponse(BaseModel):
-    id: UUID
     time: datetime
-    action: str = Field(..., max_length=100)
-    user_id: UUID
-    ip_address: Optional[str] = Field(None, max_length=45)
-    user_agent: Optional[str] = None
-    details: Dict[str, Any]
+    event_type: str
+    action: str
+    user_id: Optional[UUID] = None
+    target_entity: Optional[str] = None
+    target_id: Optional[UUID] = None
+    old_value: Optional[Dict[str, Any]] = None
+    new_value: Optional[Dict[str, Any]] = None
+    ip_address: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

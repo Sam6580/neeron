@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useAppData } from "@/lib/hooks/useAppData";
 import { AppShell } from "@/components/layout";
-import { getActiveAlerts } from "@/data/alerts";
 
 interface PingNode {
   name: string;
@@ -12,6 +12,7 @@ interface PingNode {
 }
 
 export default function SupportPage() {
+  const { getActiveAlerts } = useAppData();
   const activeAlerts = getActiveAlerts();
   
   // Interactive Ping states

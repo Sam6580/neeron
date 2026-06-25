@@ -17,6 +17,7 @@ from app.repositories import (
     PredictionRepository,
     UserRepository,
     DashboardRepository,
+    AuditLogRepository,
 )
 from app.models import (
     HistoricalCase,
@@ -42,6 +43,7 @@ from app.services import (
     AiInsightService,
     UserService,
     AlertService,
+    AuthService,
 )
 
 
@@ -125,7 +127,17 @@ async def get_ai_insight_service(db: AsyncSession = Depends(get_db)) -> AiInsigh
 
 
 async def get_user_service(db: AsyncSession = Depends(get_db)) -> UserService:
-    return UserService(user_repo=UserRepository(db))
+    return UserService(
+        user_repo=UserRepository(db),
+        audit_log_repo=AuditLogRepository(db),
+    )
+
+
+async def get_auth_service(db: AsyncSession = Depends(get_db)) -> AuthService:
+    return AuthService(
+        user_repo=UserRepository(db),
+        audit_log_repo=AuditLogRepository(db),
+    )
 
 
 async def get_alert_service(db: AsyncSession = Depends(get_db)) -> AlertService:

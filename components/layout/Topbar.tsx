@@ -1,6 +1,9 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth/auth-context";
 
 interface TopbarProps {
   title?: string;
@@ -8,13 +11,23 @@ interface TopbarProps {
   className?: string;
 }
 
-const TABS = ["Global Metrics", "Network Status"] as const;
+const TABS = [
+  { label: "Global Metrics", href: "/" },
+  { label: "Network Status", href: "/network" },
+] as const;
 
 export function Topbar({
   title = "Farm Command Center",
   alertCount = 0,
   className,
 }: TopbarProps) {
+  const { user, logout } = useAuth();
+  const pathname = usePathname();
+
+  const initials = user
+    ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`.toUpperCase()
+    : "";
+
   return (
     <header
       className={cn(
@@ -41,35 +54,29 @@ export function Topbar({
       </div>
 
       <div className="hidden items-center gap-6 lg:flex">
-        {TABS.map((tab, i) => (
-          <button
-            key={tab}
-            type="button"
-            className={cn(
-              "relative pb-1 text-sm font-medium transition-colors",
-              i === 0
-                ? "text-primary"
-                : "text-on-surface-variant hover:text-on-surface",
-            )}
-          >
-            {tab}
-            {i === 0 && (
-              <span className="absolute -bottom-4 left-0 h-0.5 w-full bg-primary shadow-[0_0_8px_rgba(71,214,255,0.6)]" />
-            )}
-          </button>
-        ))}
+        {TABS.map((tab) => {
+          const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
+          return (
+            <Link
+              key={tab.href}
+              href={tab.href}
+              className={cn(
+                "relative pb-1 text-sm font-medium transition-colors",
+                active ? "text-primary" : "text-on-surface-variant hover:text-on-surface",
+              )}
+            >
+              {tab.label}
+              {active && (
+                <span className="absolute -bottom-4 left-0 h-0.5 w-full bg-primary shadow-[0_0_8px_rgba(71,214,255,0.6)]" />
+              )}
+            </Link>
+          );
+        })}
       </div>
 
       <h1 className="text-sm font-semibold text-on-surface lg:hidden">{title}</h1>
 
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          className="hidden rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-on-surface transition-colors hover:border-primary/30 hover:bg-white/5 sm:block"
-        >
-          Run AI Diagnostic
-        </button>
-
         <button
           type="button"
           className="relative rounded-full p-2 text-on-surface-variant transition-colors hover:bg-white/5 hover:text-on-surface"
@@ -82,6 +89,30 @@ export function Topbar({
             <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-error shadow-[0_0_6px_rgba(255,180,171,0.8)]" />
           )}
         </button>
+
+        {user && (
+          <div className="flex items-center gap-2">
+            <div className="hidden text-right sm:block">
+              <p className="text-sm font-medium leading-tight text-on-surface">
+                {user.first_name} {user.last_name}
+              </p>
+              <p className="text-xs leading-tight text-on-surface-variant">{user.role_name}</p>
+            </div>
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary"
+              aria-hidden
+            >
+              {initials}
+            </div>
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="rounded-full border border-white/10 px-3 py-1.5 text-xs font-medium text-on-surface-variant transition-colors hover:border-error/30 hover:text-on-surface"
+            >
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

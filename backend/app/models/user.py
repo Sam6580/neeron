@@ -58,7 +58,7 @@ class User(Base, UUIDMixin, TimestampMixin):
     )
 
     # ── Relationships ─────────────────────────────────────────────────────────
-    role: Mapped["Role"] = relationship("Role", back_populates="users")
+    role: Mapped["Role"] = relationship("Role", back_populates="users", lazy="selectin")
 
     farms: Mapped[list["Farm"]] = relationship(
         "Farm",

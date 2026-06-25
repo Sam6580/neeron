@@ -6,6 +6,7 @@ from app.models.role import Role
 from app.models.user import User, NotificationPreference, AuditLog
 from app.models.farm import Farm, UserFarmMapping
 from app.models.zone import Zone
+from app.models.ui import UiResource
 from app.models.tank import Tank, QuarantineEvent, Inspection
 
 # Batch 2
@@ -59,6 +60,7 @@ __all__ = [
     "Farm",
     "UserFarmMapping",
     "Zone",
+    "UiResource",
     "Tank",
     "QuarantineEvent",
     "Inspection",

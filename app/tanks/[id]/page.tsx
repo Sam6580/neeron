@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useAppData } from "@/lib/hooks/useAppData";
+import type { Tank } from "@/types";
 import { notFound } from "next/navigation";
 import { use, useState } from "react";
 import { AppShell } from "@/components/layout";
@@ -18,9 +20,6 @@ import {
   getPsiStatusStyle,
 } from "@/lib";
 import { cn } from "@/lib/utils";
-import { getActiveAlerts } from "@/data/alerts";
-import { getTankById } from "@/data/tanks";
-import { getZoneById } from "@/data/zones";
 
 interface TankDetailPageProps {
   params: Promise<{ id: string }>;
@@ -63,7 +62,7 @@ interface AIDetails {
 }
 
 // Helper to generate dynamic, state-appropriate AI details for each tank
-function getTankAiDetails(tank: any): AIDetails {
+function getTankAiDetails(tank: Tank): AIDetails {
   const health = tank.healthScore;
   const psi = computePsiScore(tank);
 
@@ -242,6 +241,7 @@ function getTankAiDetails(tank: any): AIDetails {
 }
 
 export default function TankDetailPage({ params }: TankDetailPageProps) {
+  const { getActiveAlerts, getTankById, getZoneById } = useAppData();
   const { id } = use(params);
   const tank = getTankById(id);
 

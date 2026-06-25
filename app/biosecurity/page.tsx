@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
+import { useAppData } from "@/lib/hooks/useAppData";
+import type { TankStatus } from "@/types";
 import Link from "next/link";
 import { AppShell } from "@/components/layout";
 import {
@@ -11,10 +13,6 @@ import {
   getTankHealthStatusStyle,
 } from "@/lib";
 import { cn } from "@/lib/utils";
-import { tanks } from "@/data/tanks";
-import { zones } from "@/data/zones";
-import { getActiveAlerts } from "@/data/alerts";
-import { biosecurityRecords } from "@/data/biosecurity";
 
 interface DiseaseRisk {
   pathogen: string;
@@ -51,6 +49,7 @@ interface PathogenThreat {
 }
 
 export default function BiosecurityPage() {
+  const { tanks, zones, biosecurity: biosecurityRecords, getActiveAlerts } = useAppData();
   const activeAlerts = getActiveAlerts();
   const [hoveredCageId, setHoveredCageId] = useState<string | null>(null);
 
@@ -106,7 +105,7 @@ export default function BiosecurityPage() {
   ];
 
   // SECTION 7: Heatmap Cage Lookup
-  const hoveredCageDetails = useMemo(() => {
+  const hoveredCageDetails = (() => {
     if (!hoveredCageId) return null;
     const tank = tanks.find(t => t.id === hoveredCageId);
     if (!tank) return null;
@@ -136,7 +135,7 @@ export default function BiosecurityPage() {
       liceCount,
       agdScore,
     };
-  }, [hoveredCageId]);
+  })();
 
   return (
     <AppShell activePath="/biosecurity" title="Biosecurity & Health" alertCount={activeAlerts.length}>
@@ -319,7 +318,7 @@ export default function BiosecurityPage() {
                         <h4 className="text-sm font-bold text-on-surface">{hoveredCageDetails.idCode}</h4>
                         <p className="text-[10px] text-on-surface-variant mt-0.5">{hoveredCageDetails.name}</p>
                       </div>
-                      <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest", getTankHealthStatusStyle(hoveredCageDetails.status as any))}>
+                      <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest", getTankHealthStatusStyle(hoveredCageDetails.status as TankStatus))}>
                         {hoveredCageDetails.status}
                       </span>
                     </div>
@@ -438,13 +437,13 @@ export default function BiosecurityPage() {
                 <tbody className="divide-y divide-white/5">
                   <tr className="hover:bg-white/5">
                     <td className="py-2 font-semibold">Hatchery Facility A (RAS Bodø)</td>
-                    <td className="py-2">Robert Chen (Lloyd's Register)</td>
+                    <td className="py-2">Robert Chen (Lloyd&apos;s Register)</td>
                     <td className="py-2 text-center font-bold text-primary">98 / 100</td>
                     <td className="py-2 text-right"><span className="badge-optimal text-[8px] font-bold uppercase px-1.5 py-0.5 rounded">Passed</span></td>
                   </tr>
                   <tr className="hover:bg-white/5">
                     <td className="py-2 font-semibold">Grow-out Pond Area 03 (Loch Duich)</td>
-                    <td className="py-2">Robert Chen (Lloyd's Register)</td>
+                    <td className="py-2">Robert Chen (Lloyd&apos;s Register)</td>
                     <td className="py-2 text-center font-bold text-primary">92 / 100</td>
                     <td className="py-2 text-right"><span className="badge-optimal text-[8px] font-bold uppercase px-1.5 py-0.5 rounded">Passed</span></td>
                   </tr>

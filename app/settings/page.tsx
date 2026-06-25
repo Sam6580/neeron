@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useAppData } from "@/lib/hooks/useAppData";
 import Link from "next/link";
 import { AppShell } from "@/components/layout";
 import {
@@ -9,7 +10,6 @@ import {
   formatRelativeTime,
 } from "@/lib";
 import { cn } from "@/lib/utils";
-import { getActiveAlerts } from "@/data/alerts";
 
 // Interfaces for Settings page
 interface SensorDevice {
@@ -41,6 +41,7 @@ interface ConsoleLog {
 }
 
 export default function SettingsPage() {
+  const { getActiveAlerts } = useAppData();
   const activeAlerts = getActiveAlerts();
 
   // Threshold States (Section 4)

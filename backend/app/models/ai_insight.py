@@ -57,12 +57,14 @@ class AiInsight(Base):
     __table_args__ = (
         Index("ix_ai_insights_tank_generated",   "tank_id", "generated_at"),
         Index("ix_ai_insights_priority_active",  "priority", "generated_at"),
-        # Partial index — efficiently retrieve non-expired insights
+        # Partial index for permanently-active insights. The predicate must be
+        # IMMUTABLE for Postgres, so the time-based check (expires_at > now())
+        # is applied at query time rather than in the index predicate.
         Index(
             "ix_ai_insights_active",
             "tank_id",
             "generated_at",
-            postgresql_where="expires_at IS NULL OR expires_at > NOW()",
+            postgresql_where="expires_at IS NULL",
         ),
         CheckConstraint(
             "priority IN ('Info','Medium','High','Critical')",
