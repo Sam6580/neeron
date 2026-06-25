@@ -64,20 +64,17 @@ async def test_list_outbreaks(client, mock_services):
     farm_id = uuid4()
     tank_id = uuid4()
 
-    mock_services["tank"].get_tank_dashboard.return_value = [
-        {"tank_id": tank_id, "name": "Cage-05"}
+    mock_services["biosecurity"].get_outbreaks_for_farm.return_value = [
+        {
+            "tankId": tank_id,
+            "tankName": "Cage-05",
+            "pathogenScientificName": "Caligus rogercresseyi",
+            "currentPathogenCount": 8.5,
+            "riskThreshold": 5.0,
+            "status": "Critical",
+            "quarantineActive": True,
+        }
     ]
-    mock_services["biosecurity"].get_pathogen_summary.return_value = [
-        MockORM(
-            status="Critical",
-            risk_level="High",
-            pathogen_count=8.5,
-            pathogen=MockORM(name="Caligus rogercresseyi"),
-        )
-    ]
-    mock_services["biosecurity"].get_quarantine_status.return_value = {
-        "is_quarantined": True
-    }
 
     response = await client.get(f"/api/v1/biosecurity/outbreaks?farm_id={farm_id}")
     assert response.status_code == 200

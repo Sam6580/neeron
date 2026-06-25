@@ -32,6 +32,29 @@ class BiosecurityRepository(BaseRepository[BiosecurityRecord]):
                 
         return list(latest_pathogens.values())
 
+    async def get_latest_pathogen_counts_for_tanks(
+        self, tank_ids: List[UUID]
+    ) -> List[BiosecurityRecord]:
+        """Batch retrieve latest biosecurity records for all listed tank IDs."""
+        if not tank_ids:
+            return []
+        query = (
+            select(self.model)
+            .where(self.model.tank_id.in_(tank_ids))
+            .order_by(desc(self.model.time))
+        )
+        result = await self.session.execute(query)
+        records = result.scalars().all()
+        
+        # Keep only the latest record per (tank_id, pathogen_id)
+        latest_pathogens = {}
+        for rec in records:
+            key = (rec.tank_id, rec.pathogen_id)
+            if key not in latest_pathogens:
+                latest_pathogens[key] = rec
+                
+        return list(latest_pathogens.values())
+
     async def get_vaccination_history(self, tank_id: UUID) -> List[VaccinationRecord]:
         """Retrieves vaccination schedules and historical logs for a tank."""
         query = (

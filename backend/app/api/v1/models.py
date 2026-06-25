@@ -16,6 +16,14 @@ from app.schemas.model import AiModelResponse, ModelHealthMetricResponse
 router = APIRouter()
 
 
+def _map_owner(m) -> str:
+    if hasattr(m, "owner") and isinstance(m.owner, str):
+        return m.owner
+    if hasattr(m, "owner") and m.owner:
+        return getattr(m.owner, "full_name", "Unknown")
+    return "Unknown"
+
+
 @router.get("", response_model=BaseResponse[List[AiModelResponse]])
 async def list_models(
     db: AsyncSession = Depends(get_db),
@@ -25,7 +33,20 @@ async def list_models(
     """
     repo = BaseRepository(AiModel, db)
     models = await repo.get_multi(limit=100)
-    return BaseResponse(data=models)
+    mapped = [
+        AiModelResponse(
+            id=m.id,
+            name=m.name,
+            algorithm=m.algorithm,
+            status=m.status,
+            owner=_map_owner(m),
+            description=m.description,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
+        )
+        for m in models
+    ]
+    return BaseResponse(data=mapped)
 
 
 @router.get("/health", response_model=BaseResponse[List[ModelHealthMetricResponse]])
@@ -69,4 +90,14 @@ async def get_model_detail(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"AI Model not found with ID {model_id}",
         )
-    return BaseResponse(data=model)
+    mapped = AiModelResponse(
+        id=model.id,
+        name=model.name,
+        algorithm=model.algorithm,
+        status=model.status,
+        owner=_map_owner(model),
+        description=model.description,
+        created_at=model.created_at,
+        updated_at=model.updated_at,
+    )
+    return BaseResponse(data=mapped)

@@ -53,6 +53,43 @@ interface ApiEnvelope<T> {
 interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   auth?: boolean;
+  _isRetry?: boolean;
+}
+
+let isRefreshingPromise: Promise<string | null> | null = null;
+
+async function performTokenRefresh(): Promise<string | null> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return null;
+
+  try {
+    const finalHeaders = new Headers();
+    finalHeaders.set("Content-Type", "application/json");
+
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: finalHeaders,
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+
+    if (!response.ok) {
+      clearTokens();
+      return null;
+    }
+
+    const payload = (await response.json()) as ApiEnvelope<{ access_token: string; refresh_token: string }>;
+    if (payload?.data?.access_token) {
+      setTokens(payload.data.access_token, payload.data.refresh_token);
+      return payload.data.access_token;
+    }
+    clearTokens();
+    return null;
+  } catch {
+    clearTokens();
+    return null;
+  } finally {
+    isRefreshingPromise = null;
+  }
 }
 
 /**
@@ -63,7 +100,7 @@ export async function apiFetch<T>(
   endpoint: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { body, auth = true, headers, ...rest } = options;
+  const { body, auth = true, headers, _isRetry, ...rest } = options;
 
   const finalHeaders = new Headers(headers);
   finalHeaders.set("Content-Type", "application/json");
@@ -87,6 +124,19 @@ export async function apiFetch<T>(
   }
 
   if (!response.ok) {
+    if (response.status === 401 && auth && getRefreshToken() && !_isRetry) {
+      if (!isRefreshingPromise) {
+        isRefreshingPromise = performTokenRefresh();
+      }
+      const newAccessToken = await isRefreshingPromise;
+      if (newAccessToken) {
+        return apiFetch<T>(endpoint, {
+          ...options,
+          _isRetry: true,
+        });
+      }
+    }
+
     const message =
       payload?.error?.message || response.statusText || "Request failed";
     if (response.status === 401) clearTokens();

@@ -3,7 +3,7 @@
 from uuid import UUID
 from datetime import datetime
 from typing import Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class UserResponse(BaseModel):
@@ -13,8 +13,7 @@ class UserResponse(BaseModel):
     last_name: str = Field(..., max_length=100)
     role_id: UUID
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AuditLogResponse(BaseModel):
@@ -28,4 +27,4 @@ class AuditLogResponse(BaseModel):
     new_value: Optional[Dict[str, Any]] = None
     ip_address: str
 
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)

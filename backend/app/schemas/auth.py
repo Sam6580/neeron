@@ -2,7 +2,7 @@
 
 from uuid import UUID
 from typing import Dict
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class LoginRequest(BaseModel):
@@ -39,5 +39,4 @@ class UserProfileResponse(BaseModel):
     role_name: str
     permissions: Dict[str, bool]
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

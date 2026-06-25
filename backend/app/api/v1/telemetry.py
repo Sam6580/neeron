@@ -77,16 +77,17 @@ async def get_telemetry_history(
     Retrieves historical ranges of raw telemetry readings for all active sensors on a tank.
     """
     sensors = await service.sensor_repo.get_active_sensors(tank_id)
+    sensor_ids = [s.id for s in sensors]
     history_points = []
     
-    for s in sensors:
-        readings = await service.get_time_series(s.id, start_time, end_time)
+    if sensor_ids:
+        readings = await service.get_time_series_multi(sensor_ids, start_time, end_time)
         for r in readings:
             history_points.append(
                 TelemetryHistoryPoint(
                     timestamp=r.time,
                     value=float(r.value),
-                    sensor_id=s.id,
+                    sensor_id=r.sensor_id,
                 )
             )
 

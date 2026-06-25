@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 from typing import Optional
 
@@ -55,6 +56,16 @@ class User(Base, UUIDMixin, TimestampMixin):
     two_factor_secret: Mapped[Optional[str]] = mapped_column(
         String(128), nullable=True,
         comment="Base-32 TOTP secret (stored encrypted at rest).",
+    )
+
+    # ── Refresh Token ────────────────────────────────────────────────────────
+    refresh_token: Mapped[Optional[str]] = mapped_column(
+        String(255), nullable=True,
+        comment="Persisted refresh token for authentication hardening.",
+    )
+    refresh_token_expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True,
+        comment="Expiration timestamp of the stored refresh token.",
     )
 
     # ── Relationships ─────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 # app/services/auth_service.py
 
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 from uuid import UUID
 
@@ -7,6 +8,7 @@ from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.repositories.audit_log_repository import AuditLogRepository
 from app.services.base import BaseService
+from app.core.config import settings
 from app.core.security import (
     verify_password,
     create_access_token,
@@ -65,6 +67,10 @@ class AuthService(BaseService):
         access_token = create_access_token(data={"sub": str(user.id)})
         refresh_token = create_refresh_token(data={"sub": str(user.id)})
 
+        # Persist refresh token in database
+        expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        await self.user_repo.save_refresh_token(user.id, refresh_token, expires_at)
+
         # Log successful login
         await self.audit_log_repo.create_audit_log(
             event_type="LOGIN_SUCCESS",
@@ -86,10 +92,49 @@ class AuthService(BaseService):
         Validates refresh token and issues rotated access/refresh tokens. Logs 'REFRESH_TOKEN'.
         """
         try:
+            # 1. Validate JWT signature and format (raises ValueError on failure)
+            # 2. Ensure token type == refresh (internally verified by validate_token)
             payload = validate_token(refresh_token, "refresh")
             user_id_str = payload.get("sub")
             if not user_id_str:
-                raise ValueError("Invalid token payload structure")
+                raise ValueError("Invalid token payload structure: missing sub claim")
+
+            try:
+                user_id = UUID(user_id_str)
+            except ValueError:
+                raise ValueError("Invalid user ID format in token sub claim")
+
+            # 3. Lookup stored refresh token
+            user = await self.user_repo.get_by_refresh_token(refresh_token)
+            if not user:
+                raise ValueError("Refresh token is revoked, rotated, or invalid")
+
+            # 4. Ensure stored token matches
+            if user.refresh_token != refresh_token:
+                raise ValueError("Provided refresh token does not match persisted token")
+
+            # 5. Ensure DB expiry has not been exceeded
+            if not user.refresh_token_expires_at:
+                raise ValueError("Refresh token expiration missing in database")
+            
+            expiry = user.refresh_token_expires_at
+            if expiry.tzinfo is None:
+                expiry = expiry.replace(tzinfo=timezone.utc)
+            if expiry < datetime.now(timezone.utc):
+                raise ValueError("Refresh token has expired in database")
+
+            # 6. Ensure user account status
+            if not user.is_active:
+                raise ValueError("User account is inactive")
+
+            # 7. Rotate tokens
+            new_access_token = create_access_token(data={"sub": str(user.id)})
+            new_refresh_token = create_refresh_token(data={"sub": str(user.id)})
+            new_expires_at = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+
+            # 8. Save the new refresh token (rotating / invalidating old one)
+            await self.user_repo.save_refresh_token(user.id, new_refresh_token, new_expires_at)
+
         except ValueError as e:
             # Log failed token refresh
             await self.audit_log_repo.create_audit_log(
@@ -99,19 +144,6 @@ class AuthService(BaseService):
                 target_entity="User",
             )
             raise ValueError(f"Invalid refresh token: {str(e)}")
-
-        try:
-            user_id = UUID(user_id_str)
-        except ValueError:
-            raise ValueError("Invalid user ID format in token")
-
-        user = await self.user_repo.get(user_id)
-        if not user or not user.is_active:
-            raise ValueError("User not found or inactive")
-
-        # Rotate tokens
-        new_access_token = create_access_token(data={"sub": str(user.id)})
-        new_refresh_token = create_refresh_token(data={"sub": str(user.id)})
 
         # Log successful token refresh
         await self.audit_log_repo.create_audit_log(
@@ -131,8 +163,10 @@ class AuthService(BaseService):
 
     async def logout(self, user: User, ip_address: str) -> bool:
         """
-        Clears user session. Logs 'LOGOUT'.
+        Clears user session by invalidating the refresh token. Logs 'LOGOUT'.
         """
+        await self.user_repo.invalidate_refresh_token(user.id)
+
         await self.audit_log_repo.create_audit_log(
             event_type="LOGOUT",
             action=f"User logged out: {user.email}",

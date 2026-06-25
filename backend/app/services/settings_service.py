@@ -10,6 +10,7 @@ from app.models.system_health_snapshot import SystemHealthSnapshot
 from app.models.threshold_config import ThresholdConfig
 from app.repositories.base import BaseRepository
 from app.repositories.sensor_repository import SensorRepository
+from app.repositories.threshold_config_repository import ThresholdConfigRepository
 from app.services.base import BaseService
 
 
@@ -22,7 +23,7 @@ class SettingsService(BaseService):
     def __init__(
         self,
         sensor_repo: SensorRepository,
-        threshold_repo: BaseRepository[ThresholdConfig],
+        threshold_repo: ThresholdConfigRepository,
         model_health_repo: BaseRepository[ModelHealthMetric],
         system_health_repo: BaseRepository[SystemHealthSnapshot],
     ):

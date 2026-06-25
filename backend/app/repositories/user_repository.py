@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 from sqlalchemy import desc, select
@@ -30,3 +31,29 @@ class UserRepository(BaseRepository[User]):
         )
         result = await self.session.execute(query)
         return list(result.scalars().all())
+
+    async def save_refresh_token(self, user_id: UUID, refresh_token: str, expires_at: datetime) -> Optional[User]:
+        """Stores the refresh token and its expiration timestamp for the user."""
+        user = await self.get(user_id)
+        if user:
+            user.refresh_token = refresh_token
+            user.refresh_token_expires_at = expires_at
+            self.session.add(user)
+            await self.session.flush()
+        return user
+
+    async def get_by_refresh_token(self, refresh_token: str) -> Optional[User]:
+        """Retrieves a user by matching their active refresh token."""
+        query = select(self.model).where(self.model.refresh_token == refresh_token)
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
+    async def invalidate_refresh_token(self, user_id: UUID) -> Optional[User]:
+        """Nullifies both the refresh token and its expiration timestamp for the user."""
+        user = await self.get(user_id)
+        if user:
+            user.refresh_token = None
+            user.refresh_token_expires_at = None
+            self.session.add(user)
+            await self.session.flush()
+        return user

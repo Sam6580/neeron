@@ -12,6 +12,8 @@ from app.schemas.settings import (
     ThresholdConfigResponse,
     ThresholdUpdatePayload,
 )
+from app.api.v1.dependencies.auth import get_current_active_user
+from app.models.user import User
 
 router = APIRouter()
 
@@ -55,13 +57,14 @@ async def get_threshold_configs(
 @router.put("/thresholds", response_model=BaseResponse[ThresholdConfigResponse])
 async def update_threshold_configs(
     payload: ThresholdUpdatePayload,
+    current_user: User = Depends(get_current_active_user),
     service: SettingsService = Depends(get_settings_service),
 ):
     """
     Updates warning/critical threshold parameters for a specific metric.
     """
-    # Mock user ID for audit trailing until auth setup is ready
-    user_id = UUID("00000000-0000-0000-0000-000000000000")
+    # Use authenticated user ID for audit trailing
+    user_id = current_user.id
     try:
         config = await service.update_thresholds(
             farm_id=payload.farmId,

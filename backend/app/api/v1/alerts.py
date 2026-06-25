@@ -8,6 +8,8 @@ from app.api.v1.deps import get_alert_service
 from app.services.alert_service import AlertService
 from app.schemas.base import BaseResponse
 from app.schemas.alert import AlertResponse
+from app.api.v1.dependencies.auth import get_current_active_user
+from app.models.user import User
 
 router = APIRouter()
 
@@ -46,6 +48,7 @@ async def list_alerts(
 @router.post("/{id}/acknowledge", response_model=BaseResponse[AlertResponse])
 async def acknowledge_alert(
     id: UUID,
+    current_user: User = Depends(get_current_active_user),
     service: AlertService = Depends(get_alert_service),
 ):
     """
@@ -59,8 +62,8 @@ async def acknowledge_alert(
         )
     alert = alerts[0]
 
-    # Mock user ID for audit trails until auth setup is ready
-    user_id = UUID("00000000-0000-0000-0000-000000000000")
+    # Use authenticated user ID for audit trails
+    user_id = current_user.id
     updated_alert = await service.acknowledge_alert(
         alert_id=alert.id, alert_time=alert.time, user_id=user_id
     )

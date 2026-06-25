@@ -59,18 +59,21 @@ async def test_list_recommendations_non_pending(client, mock_services):
 
 
 async def test_accept_recommendation_success(client, mock_services):
+    from app.api.v1.dependencies.auth import get_current_active_user
+    from app.main import app
+    expected_user = app.dependency_overrides[get_current_active_user]()
+
     rec_id = uuid4()
     action_id = uuid4()
     # Mocking the lookup
-    mock_services["recommendation"].rec_repo.get_multi.return_value = [
-        MockORM(id=rec_id, time=datetime.now(timezone.utc))
-    ]
+    rec = MockORM(id=rec_id, time=datetime.now(timezone.utc))
+    mock_services["recommendation"].rec_repo.get_multi.return_value = [rec]
     # Mocking the action outcome
     mock_services["recommendation"].execute_recommendation.return_value = MockORM(
         id=action_id,
         executed_at=datetime.now(timezone.utc),
         recommendation_id=rec_id,
-        user_id=UUID("00000000-0000-0000-0000-000000000000"),
+        user_id=expected_user.id,
         action="Accepted",
     )
 
@@ -80,6 +83,14 @@ async def test_accept_recommendation_success(client, mock_services):
     assert json_data["success"] is True
     assert json_data["data"]["action"] == "Accepted"
     assert json_data["data"]["recommendation_id"] == str(rec_id)
+    assert json_data["data"]["user_id"] == str(expected_user.id)
+
+    mock_services["recommendation"].execute_recommendation.assert_called_once_with(
+        recommendation_id=rec_id,
+        recommendation_time=rec.time,
+        user_id=expected_user.id,
+        notes="Accepted via API v1 endpoint",
+    )
 
 
 async def test_accept_recommendation_not_found(client, mock_services):
@@ -91,16 +102,19 @@ async def test_accept_recommendation_not_found(client, mock_services):
 
 
 async def test_dismiss_recommendation_success(client, mock_services):
+    from app.api.v1.dependencies.auth import get_current_active_user
+    from app.main import app
+    expected_user = app.dependency_overrides[get_current_active_user]()
+
     rec_id = uuid4()
     action_id = uuid4()
-    mock_services["recommendation"].rec_repo.get_multi.return_value = [
-        MockORM(id=rec_id, time=datetime.now(timezone.utc))
-    ]
+    rec = MockORM(id=rec_id, time=datetime.now(timezone.utc))
+    mock_services["recommendation"].rec_repo.get_multi.return_value = [rec]
     mock_services["recommendation"].dismiss_recommendation.return_value = MockORM(
         id=action_id,
         executed_at=datetime.now(timezone.utc),
         recommendation_id=rec_id,
-        user_id=UUID("00000000-0000-0000-0000-000000000000"),
+        user_id=expected_user.id,
         action="Dismissed",
     )
 
@@ -109,6 +123,14 @@ async def test_dismiss_recommendation_success(client, mock_services):
     json_data = response.json()
     assert json_data["success"] is True
     assert json_data["data"]["action"] == "Dismissed"
+    assert json_data["data"]["user_id"] == str(expected_user.id)
+
+    mock_services["recommendation"].dismiss_recommendation.assert_called_once_with(
+        recommendation_id=rec_id,
+        recommendation_time=rec.time,
+        user_id=expected_user.id,
+        notes="Dismissed via API v1 endpoint",
+    )
 
 
 async def test_dismiss_recommendation_not_found(client, mock_services):

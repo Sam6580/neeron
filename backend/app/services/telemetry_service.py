@@ -81,12 +81,10 @@ class TelemetryService(BaseService):
         Fetches the latest reading for each active sensor attached to the tank.
         """
         sensors = await self.sensor_repo.get_active_sensors(tank_id)
-        latest_readings = []
-        for sensor in sensors:
-            reading = await self.telemetry_repo.get_latest_reading(sensor.id)
-            if reading:
-                latest_readings.append(reading)
-        return latest_readings
+        sensor_ids = [sensor.id for sensor in sensors]
+        if not sensor_ids:
+            return []
+        return await self.telemetry_repo.get_latest_readings_for_sensors(sensor_ids)
 
     async def get_time_series(
         self, sensor_id: UUID, start_time: datetime, end_time: datetime
@@ -95,6 +93,14 @@ class TelemetryService(BaseService):
         Retrieves historical telemetry readings for a specific sensor in a given timeframe.
         """
         return await self.telemetry_repo.get_time_range(sensor_id, start_time, end_time)
+
+    async def get_time_series_multi(
+        self, sensor_ids: List[UUID], start_time: datetime, end_time: datetime
+    ) -> List[Telemetry]:
+        """
+        Retrieves historical telemetry readings for multiple sensors in a given timeframe.
+        """
+        return await self.telemetry_repo.get_time_ranges_for_sensors(sensor_ids, start_time, end_time)
 
     async def get_environment_summary(
         self, tank_id: UUID, start_time: datetime, end_time: datetime

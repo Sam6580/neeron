@@ -45,6 +45,8 @@ class Recommendation(Base):
     __table_args__ = (
         Index("ix_recommendations_tank_time",    "tank_id", "time"),
         Index("ix_recommendations_status_priority", "status", "priority"),
+        Index("ix_recommendations_generated_by_model", "generated_by_model"),
+        Index("ix_recommendations_resolved_by", "resolved_by"),
         CheckConstraint(
             "priority IN ('Low','Medium','High','Critical')",
             name="ck_recommendation_priority_valid",

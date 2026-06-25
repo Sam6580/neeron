@@ -9,6 +9,8 @@ from app.api.v1.deps import get_recommendation_service
 from app.services.recommendation_service import RecommendationService
 from app.schemas.base import BaseResponse
 from app.schemas.recommendation import RecommendationResponse, RecommendationActionResponse
+from app.api.v1.dependencies.auth import get_current_active_user
+from app.models.user import User
 
 router = APIRouter()
 
@@ -54,6 +56,7 @@ async def list_recommendations(
 @router.post("/{id}/accept", response_model=BaseResponse[RecommendationActionResponse])
 async def accept_recommendation(
     id: UUID,
+    current_user: User = Depends(get_current_active_user),
     service: RecommendationService = Depends(get_recommendation_service),
 ):
     """
@@ -67,8 +70,8 @@ async def accept_recommendation(
         )
     rec = recs[0]
 
-    # Mock user ID for audit trail logging until auth setup is ready
-    user_id = UUID("00000000-0000-0000-0000-000000000000")
+    # Use authenticated user ID for audit trail logging
+    user_id = current_user.id
     action_log = await service.execute_recommendation(
         recommendation_id=rec.id,
         recommendation_time=rec.time,
@@ -90,6 +93,7 @@ async def accept_recommendation(
 @router.post("/{id}/dismiss", response_model=BaseResponse[RecommendationActionResponse])
 async def dismiss_recommendation(
     id: UUID,
+    current_user: User = Depends(get_current_active_user),
     service: RecommendationService = Depends(get_recommendation_service),
 ):
     """
@@ -103,8 +107,8 @@ async def dismiss_recommendation(
         )
     rec = recs[0]
 
-    # Mock user ID for audit trail logging until auth setup is ready
-    user_id = UUID("00000000-0000-0000-0000-000000000000")
+    # Use authenticated user ID for audit trail logging
+    user_id = current_user.id
     action_log = await service.dismiss_recommendation(
         recommendation_id=rec.id,
         recommendation_time=rec.time,

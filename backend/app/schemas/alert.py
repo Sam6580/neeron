@@ -3,7 +3,7 @@
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class AlertResponse(BaseModel):
@@ -19,5 +19,4 @@ class AlertResponse(BaseModel):
     resolved_at: Optional[datetime] = None
     resolved_by: Optional[UUID] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

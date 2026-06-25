@@ -17,6 +17,7 @@ from app.db.mixins import UUIDMixin, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.model_version import ModelVersion
+    from app.models.user import User
 
 
 class AiModel(Base, UUIDMixin, TimestampMixin):
@@ -101,6 +102,7 @@ class AiModel(Base, UUIDMixin, TimestampMixin):
         lazy="selectin",
         order_by="ModelVersion.trained_at.desc()",
     )
+    owner: Mapped[Optional["User"]] = relationship("User", lazy="selectin")
 
     def __repr__(self) -> str:
         return (

@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone, timedelta
 from uuid import uuid4, UUID
+from unittest import mock
 import pytest
 from fastapi import APIRouter, Depends, HTTPException, status
 from tests.conftest import MockORM
@@ -283,3 +284,166 @@ async def test_rbac_administrator_bypass(client):
     assert response.json() == {"message": "success"}
 
     del app.dependency_overrides[get_current_active_user]
+
+
+# ── SERVICE LAYER PERSISTENCE & ROTATION TESTS ──────────────────────────────────
+
+async def test_auth_service_login_persists_token():
+    """Verify that AuthService.login generates and persists refresh token in DB."""
+    from unittest.mock import AsyncMock
+    from app.services.auth_service import AuthService
+
+    user_repo = AsyncMock()
+    audit_log_repo = AsyncMock()
+    auth_service = AuthService(user_repo=user_repo, audit_log_repo=audit_log_repo)
+
+    user_id = uuid4()
+    mock_user = MockORM(id=user_id, email="persist@neeron.io")
+
+    response = await auth_service.login(mock_user, "127.0.0.1")
+    assert response.access_token is not None
+    assert response.refresh_token is not None
+
+    # Assert that save_refresh_token was called with expected arguments
+    user_repo.save_refresh_token.assert_called_once()
+    call_args = user_repo.save_refresh_token.call_args[0]
+    assert call_args[0] == user_id
+    assert call_args[1] == response.refresh_token
+    # Expiry should be around 7 days from now
+    assert isinstance(call_args[2], datetime)
+    assert call_args[2] > datetime.now(timezone.utc) + timedelta(days=6)
+
+
+async def test_auth_service_refresh_rotation_success():
+    """Verify that AuthService.refresh_access_token rotates the token and returns new pair."""
+    from unittest.mock import AsyncMock
+    from app.services.auth_service import AuthService
+
+    user_repo = AsyncMock()
+    audit_log_repo = AsyncMock()
+    auth_service = AuthService(user_repo=user_repo, audit_log_repo=audit_log_repo)
+
+    user_id = uuid4()
+    # Generate a valid JWT refresh token matching user_id
+    token = create_refresh_token(data={"sub": str(user_id)}, expires_delta=timedelta(days=4))
+
+    mock_user = MockORM(
+        id=user_id,
+        email="rotate@neeron.io",
+        refresh_token=token,
+        refresh_token_expires_at=datetime.now(timezone.utc) + timedelta(days=5),
+        is_active=True,
+    )
+    user_repo.get_by_refresh_token.return_value = mock_user
+
+    response = await auth_service.refresh_access_token(token, "127.0.0.1")
+    assert response.access_token is not None
+    assert response.refresh_token is not None
+    assert response.refresh_token != token
+
+    # Check rotation
+    user_repo.save_refresh_token.assert_called_once()
+    rotated_user_id, rotated_token, rotated_expiry = user_repo.save_refresh_token.call_args[0]
+    assert rotated_user_id == user_id
+    assert rotated_token == response.refresh_token
+    assert rotated_expiry > datetime.now(timezone.utc) + timedelta(days=6)
+
+
+async def test_auth_service_refresh_mismatched_token():
+    """Verify that refresh raises ValueError if token doesn't match the one in DB."""
+    from unittest.mock import AsyncMock
+    from app.services.auth_service import AuthService
+
+    user_repo = AsyncMock()
+    audit_log_repo = AsyncMock()
+    auth_service = AuthService(user_repo=user_repo, audit_log_repo=audit_log_repo)
+
+    user_id = uuid4()
+    token = create_refresh_token(data={"sub": str(user_id)})
+
+    # Mock user having a different refresh token in DB
+    mock_user = MockORM(
+        id=user_id,
+        email="mismatch@neeron.io",
+        refresh_token="different_token",
+        refresh_token_expires_at=datetime.now(timezone.utc) + timedelta(days=5),
+        is_active=True,
+    )
+    user_repo.get_by_refresh_token.return_value = mock_user
+
+    with pytest.raises(ValueError) as exc_info:
+        await auth_service.refresh_access_token(token, "127.0.0.1")
+    assert "does not match" in str(exc_info.value)
+    
+    # Audit log should log failure
+    audit_log_repo.create_audit_log.assert_called_once_with(
+        event_type="REFRESH_TOKEN_FAILED",
+        action=mock.ANY,
+        ip_address="127.0.0.1",
+        target_entity="User",
+    )
+
+
+async def test_auth_service_refresh_expired_db_token():
+    """Verify that refresh raises ValueError if refresh token is expired in database."""
+    from unittest.mock import AsyncMock
+    from app.services.auth_service import AuthService
+
+    user_repo = AsyncMock()
+    audit_log_repo = AsyncMock()
+    auth_service = AuthService(user_repo=user_repo, audit_log_repo=audit_log_repo)
+
+    user_id = uuid4()
+    token = create_refresh_token(data={"sub": str(user_id)})
+
+    # Mock user having expired token in DB
+    mock_user = MockORM(
+        id=user_id,
+        email="expired@neeron.io",
+        refresh_token=token,
+        refresh_token_expires_at=datetime.now(timezone.utc) - timedelta(minutes=5),
+        is_active=True,
+    )
+    user_repo.get_by_refresh_token.return_value = mock_user
+
+    with pytest.raises(ValueError) as exc_info:
+        await auth_service.refresh_access_token(token, "127.0.0.1")
+    assert "expired in database" in str(exc_info.value)
+
+
+async def test_auth_service_refresh_revoked_token():
+    """Verify that refresh raises ValueError if token is not found (revoked/rotated)."""
+    from unittest.mock import AsyncMock
+    from app.services.auth_service import AuthService
+
+    user_repo = AsyncMock()
+    audit_log_repo = AsyncMock()
+    auth_service = AuthService(user_repo=user_repo, audit_log_repo=audit_log_repo)
+
+    user_id = uuid4()
+    token = create_refresh_token(data={"sub": str(user_id)})
+
+    # Mock get_by_refresh_token returning None (token revoked)
+    user_repo.get_by_refresh_token.return_value = None
+
+    with pytest.raises(ValueError) as exc_info:
+        await auth_service.refresh_access_token(token, "127.0.0.1")
+    assert "revoked, rotated, or invalid" in str(exc_info.value)
+
+
+async def test_auth_service_logout_invalidates_token():
+    """Verify that logout invalidates token in DB."""
+    from unittest.mock import AsyncMock
+    from app.services.auth_service import AuthService
+
+    user_repo = AsyncMock()
+    audit_log_repo = AsyncMock()
+    auth_service = AuthService(user_repo=user_repo, audit_log_repo=audit_log_repo)
+
+    user_id = uuid4()
+    mock_user = MockORM(id=user_id, email="logout@neeron.io")
+
+    result = await auth_service.logout(mock_user, "127.0.0.1")
+    assert result is True
+    user_repo.invalidate_refresh_token.assert_called_once_with(user_id)
+
