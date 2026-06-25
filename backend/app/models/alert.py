@@ -41,6 +41,7 @@ class Alert(Base):
         Index("ix_alerts_tank_time", "tank_id", "time"),
         # Support filtering by severity across all tanks
         Index("ix_alerts_severity_status", "severity", "status"),
+        Index("ix_alerts_resolved_by", "resolved_by"),
         CheckConstraint(
             "severity IN ('Info','Warning','Critical')",
             name="ck_alert_severity_valid",

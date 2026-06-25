@@ -40,6 +40,7 @@ class PredictionService(BaseService):
     async def aggregate_prediction_scores(self, farm_id: UUID) -> Dict[str, Any]:
         """
         Averages Physiological Stress Index (PSI) and pathogen risk probability across all farm tanks.
+        Optimized to batch query PSI and disease predictions.
         """
         tanks = await self.tank_repo.get_tank_dashboard(farm_id)
         if not tanks:
@@ -49,21 +50,29 @@ class PredictionService(BaseService):
                 "tank_count": 0,
             }
 
+        tank_ids = [t["tank_id"] for t in tanks]
+        
+        # Batch fetch predictions
+        psi_list = await self.prediction_repo.get_latest_psi_for_tanks(tank_ids)
+        disease_list = await self.prediction_repo.get_latest_disease_predictions_for_tanks(tank_ids)
+
         psi_total = 0.0
         psi_count = 0
         disease_total = 0.0
         disease_count = 0
 
-        for tank_data in tanks:
-            tank_id = tank_data["tank_id"]
-            psi = await self.prediction_repo.get_latest_psi(tank_id)
-            if psi and psi.psi_score is not None:
+        for psi in psi_list:
+            if psi.psi_score is not None:
                 psi_total += float(psi.psi_score)
                 psi_count += 1
 
-            disease = await self.prediction_repo.get_latest_disease_prediction(tank_id)
-            if disease and disease.probability is not None:
-                disease_total += float(disease.probability)
+        for disease in disease_list:
+            # Adapt service layer to extract probability from risk_score if needed
+            prob = getattr(disease, "probability", None)
+            if prob is None and hasattr(disease, "risk_score"):
+                prob = float(disease.risk_score) / 10.0
+            if prob is not None:
+                disease_total += float(prob)
                 disease_count += 1
 
         avg_psi = (psi_total / psi_count) if psi_count > 0 else 0.0
@@ -86,8 +95,20 @@ class PredictionService(BaseService):
         levels = []
         if psi and psi.stress_level:
             levels.append(psi.stress_level)
-        if disease and disease.risk_level:
-            levels.append(disease.risk_level)
+        if disease:
+            r_lvl = getattr(disease, "risk_level", None)
+            if r_lvl is None and hasattr(disease, "risk_score"):
+                score = float(disease.risk_score)
+                if score >= 7.0:
+                    r_lvl = "Critical"
+                elif score >= 5.0:
+                    r_lvl = "High"
+                elif score >= 2.0:
+                    r_lvl = "Medium"
+                else:
+                    r_lvl = "Low"
+            if r_lvl:
+                levels.append(r_lvl)
 
         if not levels:
             return "Low"

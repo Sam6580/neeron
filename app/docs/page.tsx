@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useAppData } from "@/lib/hooks/useAppData";
 import { AppShell } from "@/components/layout";
-import { getActiveAlerts } from "@/data/alerts";
 
 export default function DocumentationPage() {
+  const { getActiveAlerts } = useAppData();
   const activeAlerts = getActiveAlerts();
 
   const docSections = [
@@ -120,7 +121,7 @@ export default function DocumentationPage() {
               <div><span className="text-on-surface-variant"># Fetch cage health score</span></div>
               <div>curl -X GET \</div>
               <div>&nbsp;&nbsp;https://api.neeron.ai/v1/cages/CH-05 \</div>
-              <div>&nbsp;&nbsp;-H <span className="text-on-surface">"Authorization: Bearer $KEY"</span></div>
+              <div>&nbsp;&nbsp;-H <span className="text-on-surface">&quot;Authorization: Bearer $KEY&quot;</span></div>
             </div>
           </div>
         </div>

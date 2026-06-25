@@ -14,6 +14,7 @@ from app.services.settings_service import SettingsService
 from app.services.ai_insight_service import AiInsightService
 from app.services.user_service import UserService
 from app.services.alert_service import AlertService
+from app.services.auth_service import AuthService
 
 __all__ = [
     "BaseService",
@@ -29,4 +30,5 @@ __all__ = [
     "AiInsightService",
     "UserService",
     "AlertService",
+    "AuthService",
 ]

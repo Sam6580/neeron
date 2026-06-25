@@ -6,6 +6,7 @@ import pytest
 from unittest import mock
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
+import uuid as uuid_module
 
 from fastapi import FastAPI
 from httpx import AsyncClient
@@ -24,8 +25,10 @@ from app.api.v1.deps import (
     get_ai_insight_service,
     get_user_service,
     get_alert_service,
+    get_auth_service,
     get_db,
 )
+from app.api.v1.dependencies.auth import get_current_user, get_current_active_user
 
 
 class MockORM:
@@ -51,7 +54,7 @@ def event_loop():
 @pytest.fixture(scope="function")
 def mock_services():
     """
-    Set up AsyncMock objects for all 12 services and override them in FastAPI dependencies.
+    Set up AsyncMock objects for all services and override them in FastAPI dependencies.
     """
     mocks = {
         "dashboard": AsyncMock(),
@@ -66,6 +69,7 @@ def mock_services():
         "ai_insight": AsyncMock(),
         "user": AsyncMock(),
         "alert": AsyncMock(),
+        "auth": AsyncMock(),
         "db": AsyncMock(),
     }
 
@@ -77,7 +81,7 @@ def mock_services():
     mocks["recommendation"].rec_repo = AsyncMock()
     mocks["alert"].alert_repo = AsyncMock()
 
-    # Override dependencies
+    # Override service dependencies
     app.dependency_overrides[get_dashboard_service] = lambda: mocks["dashboard"]
     app.dependency_overrides[get_farm_service] = lambda: mocks["farm"]
     app.dependency_overrides[get_tank_service] = lambda: mocks["tank"]
@@ -90,7 +94,22 @@ def mock_services():
     app.dependency_overrides[get_ai_insight_service] = lambda: mocks["ai_insight"]
     app.dependency_overrides[get_user_service] = lambda: mocks["user"]
     app.dependency_overrides[get_alert_service] = lambda: mocks["alert"]
+    app.dependency_overrides[get_auth_service] = lambda: mocks["auth"]
     app.dependency_overrides[get_db] = lambda: mocks["db"]
+
+    # Authenticated routes are protected by get_current_active_user (which itself
+    # depends on get_current_user). Override both so data-route tests are not
+    # rejected with 401. Individual auth/RBAC tests override these as needed.
+    auth_user = MockORM(
+        id=uuid_module.uuid4(),
+        email="tester@neeron.io",
+        first_name="Test",
+        last_name="User",
+        is_active=True,
+        role=MockORM(name="Administrator", permissions={}),
+    )
+    app.dependency_overrides[get_current_user] = lambda: auth_user
+    app.dependency_overrides[get_current_active_user] = lambda: auth_user
 
     yield mocks
 

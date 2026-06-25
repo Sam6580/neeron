@@ -3,7 +3,7 @@
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class AiModelResponse(BaseModel):
@@ -16,8 +16,7 @@ class AiModelResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ModelVersionResponse(BaseModel):
@@ -28,8 +27,7 @@ class ModelVersionResponse(BaseModel):
     deployed_at: datetime
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ModelHealthMetricResponse(BaseModel):
@@ -43,5 +41,4 @@ class ModelHealthMetricResponse(BaseModel):
     data_quality_score: Optional[float] = None
     agreement_score: Optional[float] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

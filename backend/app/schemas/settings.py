@@ -3,7 +3,7 @@
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class SensorStatusResponse(BaseModel):
@@ -26,8 +26,7 @@ class ThresholdConfigResponse(BaseModel):
     updated_by: Optional[UUID] = None
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ThresholdUpdatePayload(BaseModel):

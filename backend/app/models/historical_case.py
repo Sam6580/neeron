@@ -73,7 +73,6 @@ class HistoricalCase(Base, UUIDMixin, TimestampMixin):
     scenario_type: Mapped[str] = mapped_column(
         String(100),
         nullable=False,
-        index=True,
         comment=(
             "Machine-readable category used by the similarity engine. "
             "e.g. 'Dissolved Oxygen Depletion' | 'Sea Lice Influx' | "

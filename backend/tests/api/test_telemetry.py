@@ -51,8 +51,8 @@ async def test_get_telemetry_history(client, mock_services):
     mock_services["telemetry"].sensor_repo.get_active_sensors.return_value = [
         MockORM(id=sensor_id)
     ]
-    mock_services["telemetry"].get_time_series.return_value = [
-        MockORM(time=datetime.now(timezone.utc), value=15.1)
+    mock_services["telemetry"].get_time_series_multi.return_value = [
+        MockORM(time=datetime.now(timezone.utc), value=15.1, sensor_id=sensor_id)
     ]
 
     response = await client.get(

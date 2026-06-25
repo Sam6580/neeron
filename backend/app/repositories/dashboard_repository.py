@@ -94,49 +94,55 @@ class DashboardRepository(BaseRepository[FarmHealthSnapshot]):
         """
         Summarize active zones in the farm.
         Includes zone name, tank count, and average predicted stress index (PSI) for its tanks.
+        Optimized to use a single query instead of nested loops.
         """
-        # Fetch zones
-        zones_query = select(Zone).where(Zone.farm_id == farm_id)
-        zones_result = await self.session.execute(zones_query)
-        zones = zones_result.scalars().all()
-
-        summary = []
-        for zone in zones:
-            # Count tanks
-            tanks_query = select(Tank).where(Tank.zone_id == zone.id)
-            tanks_result = await self.session.execute(tanks_query)
-            tanks = tanks_result.scalars().all()
-            tank_count = len(tanks)
-
-            # Average PSI of those tanks
-            avg_psi = 0.0
-            if tank_count > 0:
-                psi_sum = 0.0
-                valid_count = 0
-                for tank in tanks:
-                    # Get latest PSI prediction for tank
-                    psi_query = (
-                        select(PsiPrediction.psi_score)
-                        .where(PsiPrediction.tank_id == tank.id)
-                        .order_by(desc(PsiPrediction.generated_at))
-                        .limit(1)
-                    )
-                    psi_result = await self.session.execute(psi_query)
-                    psi_val = psi_result.scalar_one_or_none()
-                    if psi_val is not None:
-                        psi_sum += float(psi_val)
-                        valid_count += 1
-                if valid_count > 0:
-                    avg_psi = psi_sum / valid_count
-
-            summary.append({
-                "zone_id": zone.id,
-                "name": zone.name,
-                "tank_count": tank_count,
-                "average_psi": round(avg_psi, 2),
-            })
-
-        return summary
+        # Subquery to get the latest PSI prediction per tank
+        latest_psi_subq = (
+            select(
+                PsiPrediction.tank_id,
+                PsiPrediction.psi_score,
+                func.row_number().over(
+                    partition_by=PsiPrediction.tank_id,
+                    order_by=desc(PsiPrediction.generated_at)
+                ).label("rn")
+            )
+            .subquery()
+        )
+        
+        # Main query joining Zone, Tank, and the latest PSI predictions
+        query = (
+            select(
+                Zone.id.label("zone_id"),
+                Zone.name.label("name"),
+                func.count(Tank.id).label("tank_count"),
+                func.avg(latest_psi_subq.c.psi_score).label("avg_psi")
+            )
+            .select_from(Zone)
+            .join(Tank, Tank.zone_id == Zone.id, isouter=True)
+            .join(
+                latest_psi_subq,
+                and_(
+                    latest_psi_subq.c.tank_id == Tank.id,
+                    latest_psi_subq.c.rn == 1
+                ),
+                isouter=True
+            )
+            .where(Zone.farm_id == farm_id)
+            .group_by(Zone.id, Zone.name)
+        )
+        
+        result = await self.session.execute(query)
+        rows = result.all()
+        
+        return [
+            {
+                "zone_id": row.zone_id,
+                "name": row.name,
+                "tank_count": row.tank_count,
+                "average_psi": round(float(row.avg_psi), 2) if row.avg_psi is not None else 0.0,
+            }
+            for row in rows
+        ]
 
     async def get_recent_recommendations(self, farm_id: UUID, limit: int = 5) -> List[Recommendation]:
         """Fetch latest active recommendations generated for any tank on a farm."""

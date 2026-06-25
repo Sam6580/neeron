@@ -12,6 +12,7 @@ from app.repositories.base import BaseRepository
 from app.repositories.prediction_repository import PredictionRepository
 from app.repositories.recommendation_repository import RecommendationRepository
 from app.repositories.tank_repository import TankRepository
+from app.repositories.historical_case_repository import HistoricalCaseRepository
 from app.services.base import BaseService
 
 
@@ -25,7 +26,7 @@ class RecommendationEngineService(BaseService):
         self,
         rec_repo: RecommendationRepository,
         prediction_repo: PredictionRepository,
-        case_repo: BaseRepository[HistoricalCase],
+        case_repo: HistoricalCaseRepository,
         case_match_repo: BaseRepository[CaseMatch],
         tank_repo: TankRepository,
     ):

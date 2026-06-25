@@ -9,6 +9,7 @@ from app.repositories.base import BaseRepository
 from app.repositories.prediction_repository import PredictionRepository
 from app.repositories.recommendation_repository import RecommendationRepository
 from app.repositories.tank_repository import TankRepository
+from app.repositories.ai_insight_repository import AiInsightRepository
 from app.services.base import BaseService
 
 
@@ -19,7 +20,7 @@ class AiInsightService(BaseService):
 
     def __init__(
         self,
-        insight_repo: BaseRepository[AiInsight],
+        insight_repo: AiInsightRepository,
         prediction_repo: PredictionRepository,
         tank_repo: TankRepository,
         recommendation_repo: RecommendationRepository,

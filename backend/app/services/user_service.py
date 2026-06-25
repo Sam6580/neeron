@@ -5,6 +5,7 @@ from uuid import UUID
 
 from app.models.user import User, AuditLog
 from app.repositories.user_repository import UserRepository
+from app.repositories.audit_log_repository import AuditLogRepository
 from app.services.base import BaseService
 
 
@@ -13,8 +14,9 @@ class UserService(BaseService):
     Service managing user profiles, preferences, and security audit trails.
     """
 
-    def __init__(self, user_repo: UserRepository):
+    def __init__(self, user_repo: UserRepository, audit_log_repo: AuditLogRepository):
         self.user_repo = user_repo
+        self.audit_log_repo = audit_log_repo
 
     async def get_user_profile(self, user_id: UUID) -> Optional[User]:
         """
@@ -26,4 +28,4 @@ class UserService(BaseService):
         """
         Retrieves all historical security/operational audit logs associated with a user.
         """
-        return await self.user_repo.get_audit_logs(user_id=user_id, skip=skip, limit=limit)
+        return await self.audit_log_repo.get_user_audit_logs(user_id=user_id, skip=skip, limit=limit)

@@ -1,23 +1,16 @@
+"use client";
+
 import { AppShell } from "@/components/layout";
 import { HealthScoreCard, MetricCard, SummaryStatCard, AlertCard } from "@/components/cards";
 import { ZoneOverviewCard } from "@/components/tanks";
 import { DashboardRecommendations, HistoricalCaseMatch } from "@/components/dashboard";
-import {
-  farmHealthOperational,
-  getActiveAlerts,
-  getEnvironmentalMetrics,
-  getFarmHealthScore,
-  getZoneOverviews,
-  mortalityRisk,
-  recommendations,
-  riskTrend,
-} from "@/data";
-import { getZoneById } from "@/data/zones";
+import { useAppData } from "@/lib/hooks/useAppData";
 
 export default function FarmCommandCenterPage() {
-  const { score, trendPercent } = getFarmHealthScore();
-  const environmentalMetrics = getEnvironmentalMetrics();
-  const zoneOverviews = getZoneOverviews();
+  const { dashboard, recommendations, getActiveAlerts, getZoneById } = useAppData();
+  const { score, trendPercent } = dashboard.farmHealthScore;
+  const environmentalMetrics = dashboard.environmentalMetrics;
+  const zoneOverviews = dashboard.zoneOverviews;
   const activeAlerts = getActiveAlerts();
   const pendingRecommendations = recommendations.filter(
     (rec) => rec.status === "pending",
@@ -41,7 +34,7 @@ export default function FarmCommandCenterPage() {
               <HealthScoreCard
                 score={score}
                 trendPercent={trendPercent}
-                operationalMeta={farmHealthOperational}
+                operationalMeta={dashboard.farmHealthOperational}
                 variant="hero"
               />
             </div>

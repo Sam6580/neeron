@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
-from sqlalchemy import desc, select
+from sqlalchemy import desc, select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.psi_prediction import PsiPrediction
@@ -61,3 +61,47 @@ class PredictionRepository(BaseRepository[PsiPrediction]):
         )
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+
+    async def get_latest_psi_for_tanks(self, tank_ids: List[UUID]) -> List[PsiPrediction]:
+        """Batch retrieve the latest PSI prediction for a list of tanks."""
+        if not tank_ids:
+            return []
+        subq = (
+            select(
+                PsiPrediction,
+                func.row_number().over(
+                    partition_by=PsiPrediction.tank_id,
+                    order_by=desc(PsiPrediction.generated_at)
+                ).label("rn")
+            )
+            .where(PsiPrediction.tank_id.in_(tank_ids))
+            .subquery()
+        )
+        from sqlalchemy.orm import aliased
+        psi_alias = aliased(PsiPrediction, subq)
+        query = select(psi_alias).where(subq.c.rn == 1)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def get_latest_disease_predictions_for_tanks(
+        self, tank_ids: List[UUID]
+    ) -> List[DiseasePrediction]:
+        """Batch retrieve the latest disease predictions for a list of tanks."""
+        if not tank_ids:
+            return []
+        subq = (
+            select(
+                DiseasePrediction,
+                func.row_number().over(
+                    partition_by=DiseasePrediction.tank_id,
+                    order_by=desc(DiseasePrediction.time)
+                ).label("rn")
+            )
+            .where(DiseasePrediction.tank_id.in_(tank_ids))
+            .subquery()
+        )
+        from sqlalchemy.orm import aliased
+        disease_alias = aliased(DiseasePrediction, subq)
+        query = select(disease_alias).where(subq.c.rn == 1)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())

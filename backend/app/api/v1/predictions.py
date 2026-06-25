@@ -25,15 +25,25 @@ async def get_disease_predictions(
         return BaseResponse(data=[])
 
     # Convert model attributes to match front-end expectation
+    prob_val = getattr(d, "probability", None)
+    if prob_val is None:
+        prob_val = float(d.risk_score) / 10.0 if getattr(d, "risk_score", None) is not None else 0.0
+
+    pathogen_id_val = getattr(d, "pathogen_id", None)
+    
+    scientific_name_val = getattr(d, "pathogen", None)
+    if scientific_name_val is None:
+        scientific_name_val = getattr(d, "disease_name", "Unknown")
+
     return BaseResponse(
         data=[
             {
                 "tankId": d.tank_id,
-                "pathogenId": d.pathogen_id,
-                "scientificName": d.pathogen if hasattr(d, "pathogen") else "Unknown",
-                "probability": float(d.probability) if d.probability is not None else 0.0,
-                "confidenceLow": float(d.probability) * 0.9 if d.probability is not None else 0.0,
-                "confidenceHigh": float(d.probability) * 1.1 if d.probability is not None else 0.0,
+                "pathogenId": pathogen_id_val,
+                "scientificName": scientific_name_val,
+                "probability": float(prob_val),
+                "confidenceLow": float(prob_val) * 0.9,
+                "confidenceHigh": float(prob_val) * 1.1,
                 "time": d.time,
             }
         ]

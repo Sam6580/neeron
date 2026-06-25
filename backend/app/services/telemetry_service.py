@@ -23,17 +23,68 @@ class TelemetryService(BaseService):
         self.telemetry_repo = telemetry_repo
         self.sensor_repo = sensor_repo
 
+    async def process_raw_telemetry(self, tank_id, data: Dict[str, Any]) -> List[Telemetry]:
+        """
+        Ingest a raw MQTT telemetry payload for a tank.
+
+        Maps each numeric value in ``data`` to a matching active sensor on the
+        tank (by sensor ``type``) and persists one :class:`Telemetry` row per match.
+        Returns the list of created readings.
+        """
+        from uuid import UUID as _UUID
+        from datetime import datetime as _dt, timezone as _tz
+
+        if isinstance(tank_id, str):
+            try:
+                tank_id = _UUID(tank_id)
+            except ValueError:
+                return []
+
+        sensors = await self.sensor_repo.get_active_sensors(tank_id)
+        if not sensors:
+            return []
+
+        # Aliases mapping payload keys -> substrings expected in sensor.type
+        key_aliases = {
+            "temperature": ["temp"],
+            "temp": ["temp"],
+            "ph": ["ph"],
+            "dissolved_oxygen": ["oxygen", "do"],
+            "do": ["oxygen", "do"],
+            "oxygen": ["oxygen"],
+            "salinity": ["salinity"],
+            "ammonia": ["ammonia"],
+            "turbidity": ["turbidity"],
+        }
+
+        now = _dt.now(_tz.utc)
+        created: List[Telemetry] = []
+        for key, value in data.items():
+            if not isinstance(value, (int, float)):
+                continue
+            wanted = key_aliases.get(str(key).lower(), [str(key).lower()])
+            for sensor in sensors:
+                stype = (sensor.type or "").lower()
+                if any(w in stype for w in wanted):
+                    reading = Telemetry(
+                        sensor_id=sensor.id,
+                        time=now,
+                        value=float(value),
+                        raw_payload=data,
+                    )
+                    created.append(await self.telemetry_repo.create(reading))
+                    break
+        return created
+
     async def get_latest_metrics(self, tank_id: UUID) -> List[Telemetry]:
         """
         Fetches the latest reading for each active sensor attached to the tank.
         """
         sensors = await self.sensor_repo.get_active_sensors(tank_id)
-        latest_readings = []
-        for sensor in sensors:
-            reading = await self.telemetry_repo.get_latest_reading(sensor.id)
-            if reading:
-                latest_readings.append(reading)
-        return latest_readings
+        sensor_ids = [sensor.id for sensor in sensors]
+        if not sensor_ids:
+            return []
+        return await self.telemetry_repo.get_latest_readings_for_sensors(sensor_ids)
 
     async def get_time_series(
         self, sensor_id: UUID, start_time: datetime, end_time: datetime
@@ -42,6 +93,14 @@ class TelemetryService(BaseService):
         Retrieves historical telemetry readings for a specific sensor in a given timeframe.
         """
         return await self.telemetry_repo.get_time_range(sensor_id, start_time, end_time)
+
+    async def get_time_series_multi(
+        self, sensor_ids: List[UUID], start_time: datetime, end_time: datetime
+    ) -> List[Telemetry]:
+        """
+        Retrieves historical telemetry readings for multiple sensors in a given timeframe.
+        """
+        return await self.telemetry_repo.get_time_ranges_for_sensors(sensor_ids, start_time, end_time)
 
     async def get_environment_summary(
         self, tank_id: UUID, start_time: datetime, end_time: datetime

@@ -44,6 +44,49 @@ class TelemetryRepository(BaseRepository[Telemetry]):
         result = await self.session.execute(query)
         return list(result.scalars().all())
 
+    async def get_latest_readings_for_sensors(
+        self, sensor_ids: List[UUID]
+    ) -> List[Telemetry]:
+        """Fetch the latest reading for a list of sensors in a single query."""
+        if not sensor_ids:
+            return []
+        subq = (
+            select(
+                Telemetry,
+                func.row_number().over(
+                    partition_by=Telemetry.sensor_id,
+                    order_by=desc(Telemetry.time)
+                ).label("rn")
+            )
+            .where(Telemetry.sensor_id.in_(sensor_ids))
+            .subquery()
+        )
+        from sqlalchemy.orm import aliased
+        telemetry_alias = aliased(Telemetry, subq)
+        query = select(telemetry_alias).where(subq.c.rn == 1)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def get_time_ranges_for_sensors(
+        self, sensor_ids: List[UUID], start_time: datetime, end_time: datetime
+    ) -> List[Telemetry]:
+        """Retrieve all telemetry readings for a list of sensors within a time range."""
+        if not sensor_ids:
+            return []
+        query = (
+            select(self.model)
+            .where(
+                and_(
+                    self.model.sensor_id.in_(sensor_ids),
+                    self.model.time >= start_time,
+                    self.model.time <= end_time,
+                )
+            )
+            .order_by(desc(self.model.time))
+        )
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
     async def get_water_quality_metrics(
         self, tank_id: UUID, start_time: datetime, end_time: datetime
     ) -> Dict[str, Any]:
